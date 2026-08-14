@@ -1,0 +1,22 @@
+{
+  "schema_version": 2,
+  "target_year": 2027,
+  "generated_at": "2026-08-14T14:29:11.586621+00:00",
+  "files": [
+    {
+      "name": "predictions_2027.json",
+      "bytes": 7052886,
+      "sha256": "d49e0ebff78e8c4da601141304c6d33bf2415f7c04243505b5c1761b788aac71"
+    },
+    {
+      "name": "model_report.json",
+      "bytes": 9612,
+      "sha256": "284ff0db7c530ffdbd38e5af6c11f923f72220cb2d1c14964b244efbec0f98e4"
+    },
+    {
+      "name": "segment_2026.json",
+      "bytes": 36210,
+      "sha256": "5776688753e02c1e8e8d57728a5097938310e98ed0a2384f2bfce601f0f4cb0e"
+    }
+  ]
+}
