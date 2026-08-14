@@ -4,3 +4,5 @@
 *.jpeg binary
 *.webp binary
 *.woff2 binary
+# 运行包的哈希针对原始字节，禁止 Git 在不同系统改写换行。
+data/artifacts/*.json -text
