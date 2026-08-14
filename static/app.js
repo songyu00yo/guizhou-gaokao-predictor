@@ -14,6 +14,36 @@ const RISK_COLORS = {
 
 const el = (id) => document.getElementById(id);
 
+const scriptLoads = new Map();
+
+function loadScript(src) {
+  if (scriptLoads.has(src)) return scriptLoads.get(src);
+  const task = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = true;
+    script.addEventListener("load", resolve, { once: true });
+    script.addEventListener("error", () => reject(new Error(`资源加载失败：${src}`)), { once: true });
+    document.head.appendChild(script);
+  });
+  scriptLoads.set(src, task);
+  return task;
+}
+
+function ensureECharts() {
+  return window.echarts ? Promise.resolve() : loadScript("/static/echarts.min.js");
+}
+
+function ensureMathJax() {
+  if (window.MathJax?.typesetPromise) return Promise.resolve();
+  window.MathJax = {
+    tex: { inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]] },
+    svg: { fontCache: "global" },
+    options: { enableMenu: false },
+  };
+  return loadScript("https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js");
+}
+
 function isMotionQaMode() {
   return new URLSearchParams(window.location.search).get("motion_qa") === "1";
 }
@@ -978,9 +1008,14 @@ function recommendationRankValue(item) {
   );
 }
 
-function typesetMath(node) {
-  if (!node || !window.MathJax?.typesetPromise) return;
-  window.MathJax.typesetPromise([node]).catch(() => {});
+async function typesetMath(node) {
+  if (!node) return;
+  try {
+    await ensureMathJax();
+    await window.MathJax.typesetPromise([node]);
+  } catch (error) {
+    console.warn("公式排版资源暂不可用", error);
+  }
 }
 
 function algorithmBriefHtml() {
@@ -2413,6 +2448,9 @@ function startDesktopApp(options = {}) {
   appBooted = true;
   loadResources();
   generateList(options);
+  ensureECharts()
+    .then(() => renderAll())
+    .catch((error) => console.warn("图表资源暂不可用", error));
 }
 
 function setScoreValue(score) {
