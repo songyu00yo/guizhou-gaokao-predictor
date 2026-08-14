@@ -22,7 +22,7 @@ jobs:
           cache: pip
       - run: python -m pip install -r requirements-dev.txt
       - run: ruff check app.py backend colleges_chat.py tests
-      - run: pytest
+      - run: python -m pytest
       - name: 应用导入与 API 冒烟测试
         run: |
           python - <<'PY'
