@@ -1,5 +1,4 @@
-"""Accuracy-first admission prediction backend."""
+"""贵州高考志愿预测后端。
 
-from .data_pipeline import AdmissionRow, build_official_dataset
-
-__all__ = ["AdmissionRow", "build_official_dataset"]
+包入口保持无副作用，线上导入不会连带加载 PDF、表格或训练依赖。
+"""
