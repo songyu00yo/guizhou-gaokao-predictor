@@ -1,0 +1,16 @@
+.git
+.github
+.venv
+.ml-venv
+.pytest_cache
+__pycache__
+var
+data/raw
+data/processed
+data/private
+data/artifacts/*.cbm
+data/artifacts/*.csv
+static/assets/school-logos
+*.xlsx
+*.xls
+*.pdf

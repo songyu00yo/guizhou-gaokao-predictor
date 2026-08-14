@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - run: python -m pip install -r requirements-dev.txt
+      - run: ruff check app.py backend colleges_chat.py tests
+      - run: pytest
+      - name: 应用导入与 API 冒烟测试
+        run: |
+          python - <<'PY'
+          from fastapi.testclient import TestClient
+          from app import app
+          with TestClient(app) as client:
+              assert client.get('/api/health').status_code == 200
+              response = client.post('/api/v1/recommendations', json={'score': 500, 'risk': 'balanced'})
+              assert response.status_code == 200
+              assert len(response.json()['list']) == 96
+          PY
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t guizhou-gaokao-predictor:test .

@@ -1,0 +1,14 @@
+services:
+  predictor:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - predictor-cache:/app/var/cache
+    restart: unless-stopped
+
+volumes:
+  predictor-cache:

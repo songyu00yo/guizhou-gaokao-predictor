@@ -1,0 +1,16 @@
+[Unit]
+Description=Guizhou Gaokao Predictor
+After=network.target
+
+[Service]
+Type=simple
+User=predictor
+WorkingDirectory=/opt/guizhou-gaokao-predictor
+EnvironmentFile=-/opt/guizhou-gaokao-predictor/.env
+ExecStart=/opt/guizhou-gaokao-predictor/.venv/bin/uvicorn app:app --host 127.0.0.1 --port 8000
+Restart=on-failure
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
