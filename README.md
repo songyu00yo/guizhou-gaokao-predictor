@@ -7,6 +7,16 @@
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 ![platform](https://img.shields.io/badge/platform-Web%20%7C%20Docker-lightgrey)
 
+![CSS](https://img.shields.io/badge/CSS-34.1%25-1572B6?logo=css3&logoColor=white)
+![Python](https://img.shields.io/badge/Python-32.5%25-3776AB?logo=python&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-28.7%25-F7DF1E?logo=javascript&logoColor=black)
+![HTML](https://img.shields.io/badge/HTML-4.5%25-E34F26?logo=html5&logoColor=white)
+![Dockerfile](https://img.shields.io/badge/Dockerfile-0.2%25-2496ED?logo=docker&logoColor=white)
+
+![FastAPI](https://img.shields.io/badge/backend-FastAPI-009688?logo=fastapi&logoColor=white)
+![NumPy](https://img.shields.io/badge/numeric-NumPy-013243?logo=numpy&logoColor=white)
+![Docker](https://img.shields.io/badge/container-Docker-2496ED?logo=docker&logoColor=white)
+
 API 每次返回 96 个推荐项。推荐结果包含预测位次区间、估算录取概率和风险分层，并支持 `conservative`、`balanced` 和 `aggressive` 三种偏好。
 
 > **当前结果不能视为 2027 年正式录取预测。** 2027 年招生目录和一分一段表尚未发布。当前预测沿用 2026 年的专业集合，也没有 `plan_2027`。
