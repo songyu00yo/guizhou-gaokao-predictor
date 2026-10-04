@@ -2,6 +2,11 @@
 
 这是一个面向贵州普通类本科批首选物理考生的志愿辅助项目。当前公开运行包使用 2024～2026 年首次投档数据，对 2027 年生成临时预测。
 
+[![build](https://github.com/songyu00yo/guizhou-gaokao-predictor/actions/workflows/ci.yml/badge.svg)](https://github.com/songyu00yo/guizhou-gaokao-predictor/actions/workflows/ci.yml)
+[![release](https://img.shields.io/github/v/release/songyu00yo/guizhou-gaokao-predictor)](https://github.com/songyu00yo/guizhou-gaokao-predictor/releases/latest)
+[![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+![platform](https://img.shields.io/badge/platform-Web%20%7C%20Docker-lightgrey)
+
 API 每次返回 96 个推荐项。推荐结果包含预测位次区间、估算录取概率和风险分层，并支持 `conservative`、`balanced` 和 `aggressive` 三种偏好。
 
 > **当前结果不能视为 2027 年正式录取预测。** 2027 年招生目录和一分一段表尚未发布。当前预测沿用 2026 年的专业集合，也没有 `plan_2027`。
