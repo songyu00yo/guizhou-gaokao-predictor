@@ -125,40 +125,16 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _build_segment_artifact(cache_path: Path, artifact_dir: Path) -> Path:
-    """把累计位次还原为同分考生的真实位次区间。"""
-    payload = json.loads(cache_path.read_text(encoding="utf-8"))
-    source_rows = payload.get("segment_rows_2026") or payload.get("segment_rows") or []
-    cumulative_by_score = {
-        int(row["score_mid"]): int(row["rank_high"])
-        for row in source_rows
-        if int(row.get("rank_high") or 0) > 0
-    }
-    rows: list[dict[str, int]] = []
-    higher_score_cumulative = 0
-    for score in sorted(cumulative_by_score, reverse=True):
-        cumulative = cumulative_by_score[score]
-        rank_low = higher_score_cumulative + 1
-        rank_high = max(rank_low, cumulative)
-        rows.append(
-            {
-                "score": score,
-                "rank_low": rank_low,
-                "rank_high": rank_high,
-                "rank_mid": int(round((rank_low + rank_high) / 2)),
-            }
-        )
-        higher_score_cumulative = max(higher_score_cumulative, cumulative)
-    rows.sort(key=lambda item: item["score"])
+def _build_segment_artifact(segment_path: Path, artifact_dir: Path) -> Path:
+    """Copy a separately prepared official score-band artifact into the package."""
+    from .runtime_store import SegmentMapper
+    payload = json.loads(segment_path.read_text(encoding="utf-8"))
+    if payload.get("schema_version") != 2 or payload.get("year") != 2026:
+        raise ValueError("需要独立的 2026 年官方一分一段运行数据")
+    mapper = SegmentMapper(payload)
+    payload["rows"] = mapper.rows
     path = artifact_dir / "segment_2026.json"
-    path.write_text(
-        json.dumps(
-            {"schema_version": 2, "year": 2026, "rows": rows},
-            ensure_ascii=False,
-            separators=(",", ":"),
-        ),
-        encoding="utf-8",
-    )
+    path.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     return path
 
 
@@ -166,7 +142,7 @@ def _fair_legacy_comparison(
     frame: pd.DataFrame, new_prediction: np.ndarray, frozen_cache: Path
 ) -> dict[str, Any]:
     if not frozen_cache.exists():
-        return {"matched_rows": 0}
+        return {"matched_rows": 0, "status": "unavailable", "reason": "原算法冻结快照未公开，无法复现旧算法对比"}
     try:
         payload = json.loads(frozen_cache.read_text(encoding="utf-8"))
     except (OSError, ValueError, TypeError):
@@ -216,7 +192,7 @@ def _fair_legacy_comparison(
 
 
 def train_and_forecast(
-    processed_dir: Path, artifact_dir: Path, frozen_cache: Path
+    processed_dir: Path, artifact_dir: Path, frozen_cache: Path, segment_file: Path | None = None
 ) -> dict[str, Any]:
     rows = {
         year: read_rows(processed_dir / f"admissions_{year}.csv")
@@ -236,6 +212,13 @@ def train_and_forecast(
     holdout_metrics = metrics(
         transition_2026["target_rank"].to_numpy(dtype=int), holdout_prediction
     )
+    baseline_results = []
+    for baseline in routes:
+        if baseline.kind in {"baseline", "percentile", "ratio"}:
+            baseline_prediction, _ = _fit_predict(baseline, transition_2025, transition_2026)
+            baseline_results.append({"route": baseline.name, **metrics(
+                transition_2026["target_rank"].to_numpy(dtype=int), baseline_prediction
+            )})
     _, profiles = _calibration_by_decile(transition_2026, holdout_prediction)
     crossfit = _crossfit_calibration(transition_2026, holdout_prediction)
     fair_legacy_comparison = _fair_legacy_comparison(
@@ -248,7 +231,12 @@ def train_and_forecast(
 
     artifact_dir.mkdir(parents=True, exist_ok=True)
     model_path = artifact_dir / f"model_2027_provisional_{route.name}.cbm"
-    model.save_model(model_path)
+    if hasattr(model, "save_model"):
+        model.save_model(model_path)
+    else:
+        import joblib
+        model_path = artifact_dir / f"model_2027_provisional_{route.name}.joblib"
+        joblib.dump(model, model_path)
 
     plans_2026, plan_validation_2026 = verified_plan_map(
         rows[2026], processed_dir / "catalog_plans_2026.csv"
@@ -334,6 +322,7 @@ def train_and_forecast(
         "training_rows": int(len(final_training)),
         "forecast_rows": len(forecasts),
         "time_out_2026_metrics_without_future_plan": holdout_metrics,
+        "time_out_baselines": baseline_results,
         "crossfit_calibration": crossfit,
         "fair_legacy_comparison": fair_legacy_comparison,
         "calibration_profiles": profiles,
@@ -353,7 +342,7 @@ def train_and_forecast(
     report_path = artifact_dir / "model_report.json"
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    segment_path = _build_segment_artifact(frozen_cache, artifact_dir)
+    segment_path = _build_segment_artifact(segment_file or processed_dir / "segment_2026.json", artifact_dir)
     public_files = [prediction_path, report_path, segment_path]
     manifest = {
         "schema_version": 2,
@@ -374,11 +363,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Train the selected route and forecast 2027")
     parser.add_argument("--processed-dir", type=Path, default=Path("data/processed"))
     parser.add_argument("--artifact-dir", type=Path, default=Path("data/artifacts"))
+    parser.add_argument("--segment-file", type=Path, default=None)
     parser.add_argument(
         "--frozen-cache", type=Path, default=Path(".runtime-cache/data-store-v2.json")
     )
     args = parser.parse_args()
-    report = train_and_forecast(args.processed_dir, args.artifact_dir, args.frozen_cache)
+    report = train_and_forecast(args.processed_dir, args.artifact_dir, args.frozen_cache, args.segment_file)
     print(json.dumps(report, ensure_ascii=False, indent=2))
 
 

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>贵州高考志愿决策中心（物理类）</title>
-    <link rel="stylesheet" href="/static/styles.css?v=20270814" />
+    <link rel="stylesheet" href="/static/styles.css?v=20261023c" />
   </head>
   <body data-score-gate="open">
     <section class="desktop-required" id="desktopRequired" role="status" aria-live="polite">
@@ -28,7 +28,7 @@
         </div>
         <label class="score-gate-field">
           <span>高考分数</span>
-          <input id="entryScoreInput" type="number" min="0" max="750" required placeholder="请输入分数" inputmode="numeric" autocomplete="off" />
+          <input id="entryScoreInput" type="number" inputmode="numeric" min="0" max="750" step="1" required placeholder="请输入分数" autocomplete="off" />
         </label>
         <button class="score-gate-submit" id="scoreGateSubmit" type="submit">进入系统</button>
       </form>
@@ -61,14 +61,14 @@
             <label>
               <span>高考分数</span>
               <div class="score-editor">
-                <input id="scoreInput" type="number" min="0" max="750" readonly aria-label="当前高考分数" />
+                <input id="scoreInput" type="number" inputmode="numeric" min="0" max="750" step="1" required aria-label="当前高考分数" />
                 <span>分</span>
               </div>
             </label>
             <label>
-              <span>当前位次</span>
+              <span>手动位次（可选）</span>
               <div class="score-editor">
-                <input id="rankInput" type="number" min="1" readonly aria-label="当前位次" />
+                <input id="rankInput" type="number" inputmode="numeric" min="1" step="1" aria-label="手动输入位次，可留空自动换算" />
                 <span>名</span>
               </div>
             </label>
@@ -105,8 +105,8 @@
             <span id="resourceFreshness">本地资料</span>
           </div>
           <div class="mini-metrics">
-            <div><strong id="resourceFiles">-</strong><span>资料文件</span></div>
-            <div><strong id="guideCount">-</strong><span>院校详情</span></div>
+            <div><strong id="resourceFiles">-</strong><span>资料源文件</span></div>
+            <div><strong id="guideCount">-</strong><span>院校基础资料</span></div>
             <div><strong id="logoCoverage">-</strong><span>校徽图像</span></div>
           </div>
           <div class="source-stack" id="sourceStack"></div>
@@ -126,8 +126,8 @@
       <section class="center-stage">
         <section class="view active" id="view-dashboard">
           <div class="hero-strip">
-            <article><span>2026位次</span><strong id="metricRank2025">-</strong><small>按2026一分一段表</small></article>
-            <article><span>当前位次</span><strong id="metricRank">-</strong><small id="metricRankBasis">按2026一分一段表</small></article>
+            <article><span id="metricRankCurrentLabel">当前分数映射位次</span><strong id="metricRankCurrent">-</strong><small id="metricRankCurrentBasis">按2026一分一段表</small></article>
+            <article><span>模型使用位次</span><strong id="metricRank">-</strong><small id="metricRankBasis">按2026一分一段表</small></article>
             <article><span>推荐志愿</span><strong id="metricTotal">-</strong><small>本科批候选</small></article>
             <article><span>可冲</span><strong id="metricReach">-</strong><small id="metricReachRate">-</small></article>
             <article><span>较稳妥</span><strong id="metricStable">-</strong><small id="metricStableRate">-</small></article>
@@ -138,19 +138,19 @@
             <section class="insight-panel wide">
               <div class="panel-title">
                 <h1>最值得优先查看</h1>
-                <p>按录取概率、资料完整度、生活信息和性价比综合排序。</p>
+                <p>按录取概率、可用生活信息和性价比综合排序。</p>
               </div>
               <div class="priority-list" id="priorityList"></div>
             </section>
             <section class="insight-panel segment-panel">
               <div class="panel-title">
                 <h1>当前位次口径表</h1>
-                <p>按2026一分一段表自动换算位次，以分数为中心展开区间。</p>
+                <p>按2026一分一段表显示真实位次；位次区间仅在资料提供时展示。</p>
               </div>
               <div class="segment-summary">
                 <div><span>当前分</span><strong id="segmentScore">-</strong></div>
                 <div><span>当前位次</span><strong id="segmentRank">-</strong></div>
-                <div><span>难度校正</span><strong id="segmentShift">-</strong></div>
+                <div><span>参考口径</span><strong id="segmentShift">-</strong></div>
               </div>
               <div class="segment-table-wrap">
                 <table class="segment-table">
@@ -162,11 +162,7 @@
               <div class="mini-chart" id="rankTrendMini"></div>
               <div class="precision-grid">
                 <section>
-                  <h2>行为调整建议</h2>
-                  <div id="behaviorPanel" class="precision-list"></div>
-                </section>
-                <section>
-                  <h2>模型诊断</h2>
+                  <h2>模型诊断 · 2026时间外回测</h2>
                   <div id="diagnosticPanel" class="diagnostic-list"></div>
                 </section>
               </div>
@@ -204,16 +200,13 @@
               <span>排序</span>
               <button class="active" data-sort="order">推荐顺序</button>
               <button data-sort="confidence">录取概率高</button>
-              <button data-sort="life">生活资料完整</button>
+              <button data-sort="life">可用资料较多</button>
               <button data-sort="tuition">学费低</button>
             </div>
             <div class="filter-group" id="quickFilters">
               <span>资料</span>
               <button class="active" data-quick="all">全部</button>
-              <button data-quick="dorm">有宿舍信息</button>
-              <button data-quick="canteen">有食堂信息</button>
-              <button data-quick="employment">有就业保研</button>
-              <button data-quick="review">有评价片段</button>
+              <button data-quick="life">有生活问卷</button>
             </div>
           </div>
           <div class="table-shell">
@@ -225,7 +218,7 @@
                   <th>校徽</th>
                   <th>院校 / 专业</th>
                   <th>风险</th>
-                  <th>24 / 25 / 26</th>
+                  <th>2024 / 2025 / 2026 / 2027预测</th>
                   <th>计划 / 学费</th>
                   <th>吃住 / 发展 / 评价</th>
                   <th>操作</th>
@@ -321,10 +314,7 @@
             <span>资料</span>
             <div class="mobile-filter-options" data-mobile-filter-group="quick">
               <button class="active" data-value="all" type="button">全部</button>
-              <button data-value="dorm" type="button">宿舍</button>
-              <button data-value="canteen" type="button">食堂</button>
-              <button data-value="employment" type="button">就业</button>
-              <button data-value="review" type="button">评价</button>
+              <button data-value="life" type="button">生活问卷</button>
             </div>
           </div>
           <div class="mobile-filter-block">
@@ -345,23 +335,19 @@
         <span>贵州物理类 · 预测计算</span>
         <h2 id="entryLoaderTitle">正在生成你的志愿决策表</h2>
         <p id="entryLoaderText">正在读取位次、计划和院校画像。</p>
-        <div class="entry-loader-progress" aria-hidden="true">
-          <i></i>
-        </div>
-        <div class="entry-loader-rail" aria-hidden="true">
-          <i data-loader-bar="rank"></i>
-          <i data-loader-bar="plan"></i>
-          <i data-loader-bar="school"></i>
-        </div>
-        <div class="entry-loader-steps">
-          <b data-loader-step="rank">位次映射</b>
-          <b data-loader-step="plan">计划校准</b>
-          <b data-loader-step="school">推荐生成</b>
-        </div>
+        <svg class="entry-curve" viewBox="0 0 600 180" aria-hidden="true">
+          <path class="entry-baseline" d="M20 150H580" />
+          <path class="entry-line" pathLength="1" d="M30 135 C100 135 130 95 200 100 S320 35 385 55 S475 30 565 20" />
+          <g class="entry-node node-one"><circle cx="30" cy="135" r="5"/><text x="30" y="115">起点</text></g>
+          <g class="entry-node node-two"><circle cx="200" cy="100" r="5"/><text x="200" y="80">选择</text></g>
+          <g class="entry-node node-three"><circle cx="385" cy="55" r="5"/><text x="385" y="35">方向</text></g>
+          <g class="entry-node node-four"><circle cx="565" cy="20" r="5"/><text x="565" y="50">未来</text></g>
+        </svg>
+        <div class="entry-numbers" id="entryNumbers"></div>
       </div>
     </div>
 
     <div class="toast" id="toast" hidden></div>
-    <script type="module" src="/static/app.js?v=20270814"></script>
+    <script type="module" src="/static/app.js?v=20261023c"></script>
   </body>
 </html>

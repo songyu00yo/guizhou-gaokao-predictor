@@ -1,0 +1,103 @@
+[
+  {
+    "school": "青海理工学院",
+    "year": 2026,
+    "kind": "charter",
+    "title": "青海理工学院2026年普通本科招生章程",
+    "url": "https://zs.qhit.edu.cn/info/1018/2071.htm",
+    "expected_phrases": [
+      "青海理工学院2026年普通本科招生章程"
+    ],
+    "published_at": null
+  },
+  {
+    "school": "江西中医药大学",
+    "year": 2026,
+    "kind": "charter",
+    "title": "江西中医药大学2026年招生章程",
+    "url": "https://zsxxw.jxutcm.edu.cn/info/1010/2982.htm",
+    "expected_phrases": [
+      "江西中医药大学2026年招生章程"
+    ],
+    "published_at": "2026-06-02"
+  },
+  {
+    "school": "江西中医药大学",
+    "year": 2026,
+    "kind": "fees",
+    "title": "2026学年江西中医药大学教育收费项目及收费标准",
+    "url": "https://www.jxutcm.edu.cn/info/1139/137540.htm",
+    "expected_phrases": [
+      "2026学年江西中医药大学教育收费项目及收费标准"
+    ],
+    "published_at": "2026-06-02"
+  },
+  {
+    "school": "潍坊学院",
+    "year": 2026,
+    "kind": "charter",
+    "title": "潍坊学院2026年普通高等教育招生章程",
+    "url": "https://zsb.wfu.edu.cn/2026/0515/c5534a265946/pagem.htm",
+    "expected_phrases": [
+      "潍坊学院2026年普通高等教育招生章程"
+    ],
+    "published_at": "2026-05-15"
+  },
+  {
+    "school": "潍坊学院",
+    "year": 2026,
+    "kind": "transfer",
+    "title": "潍坊学院计算机与人工智能学院2025级学生转专业工作方案",
+    "url": "https://cs.wfu.edu.cn/2026/0710/c5419a270449/page.htm",
+    "expected_phrases": [
+      "2025级学生转专业工作方案",
+      "教务处〔2026〕87号"
+    ],
+    "scope": "仅适用于原文规定的2025级学生及计算机与人工智能学院；不推广至全校或2027级新生",
+    "published_at": null
+  },
+  {
+    "school": "上海立信会计金融学院",
+    "year": 2026,
+    "title": "上海立信会计金融学院2026年秋季招生章程",
+    "url": "https://www.lixin.edu.cn/gk/xxgklm/gjqsxx/qjqs/qszc/156086.htm",
+    "published_at": "2026-05-21",
+    "kind": "charter",
+    "expected_phrases": [
+      "上海立信会计金融学院2026年秋季招生章程"
+    ]
+  },
+  {
+    "school": "中原工学院",
+    "year": 2026,
+    "title": "中原工学院2026年普通本科招生章程",
+    "url": "https://zsc.zut.edu.cn/info/1124/3093.htm",
+    "published_at": "2026-05-15",
+    "kind": "charter",
+    "expected_phrases": [
+      "中原工学院2026年普通本科招生章程"
+    ]
+  },
+  {
+    "school": "武汉纺织大学",
+    "year": 2026,
+    "title": "武汉纺织大学2026年普通本科招生章程",
+    "url": "https://zjc.wtu.edu.cn/info/1005/6081.htm",
+    "published_at": "2026-06-08",
+    "kind": "charter",
+    "expected_phrases": [
+      "武汉纺织大学2026年普通本科招生章程"
+    ]
+  },
+  {
+    "school": "武汉纺织大学",
+    "year": 2026,
+    "title": "武汉纺织大学2026年本科招生问答",
+    "url": "https://zjc.wtu.edu.cn/info/1006/6111.htm",
+    "published_at": null,
+    "kind": "admission",
+    "expected_phrases": [
+      "武汉纺织大学2026年本科招生问答"
+    ]
+  }
+]

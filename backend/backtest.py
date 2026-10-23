@@ -5,6 +5,7 @@ import csv
 import hashlib
 import json
 import math
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
@@ -24,7 +25,10 @@ RANDOM_SEED = 20260814
 FROZEN_CACHE_SHA256 = "CE687F4C8E542CCB6D6712AC195EF74299305F34E5771EA6D22E96A6BA28A1E9"
 # Rank at the ordinary undergraduate control line. It is published before
 # preference submission, so it can safely normalize annual population drift.
-YEAR_RANK_SCALE = {2024: 155_799, 2025: 158_061, 2026: 166_669}
+YEAR_RANK_SCALE = {2024: 155_799, 2025: 158_061, 2026: 158_893}
+# 2026: ordinary physics undergraduate cutoff is 393; its cumulative rank is
+# 158893 in the official score-band PDF. 166669 was the lowest observed outcome
+# (a special-preparatory program), which is not a pre-admission population scale.
 CAT_COLUMNS = ["school_key", "major_key", "admission_type"]
 NUMERIC_COLUMNS = [
     "log_lag_rank",
@@ -399,6 +403,7 @@ def _internal_validation(frame: pd.DataFrame, routes: list[Route], folds: int = 
     groups = frame["school_key"].astype(str).to_numpy()
     results = []
     for route in routes:
+        logging.getLogger(__name__).info("Grouped validation: %s (%s folds)", route.name, folds)
         predicted = np.zeros(len(frame), dtype=int)
         for train_index, validation_index in splitter.split(frame, groups=groups):
             train = frame.iloc[train_index].reset_index(drop=True)

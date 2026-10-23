@@ -6,6 +6,7 @@ import threading
 import time
 import urllib.request
 from collections import defaultdict, deque
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -79,7 +80,9 @@ async def lifespan(app: FastAPI):
     app.state.logos = LogoService(RUNTIME_CACHE_DIR / "logos")
     app.state.private_profiles = _load_private_profiles()
     app.state.colleges_chat = get_colleges_chat_service(RUNTIME_CACHE_DIR / "colleges-chat")
-    app.state.logo_limiter = SlidingWindowLimiter(limit=5, window_seconds=60)
+    # 一次推荐需要 5 批（每批 20 个）校徽请求，5 次/分钟会让用户刷新一次就 429；
+    # 这里放宽到 30 次/分钟，仍能挡住刷接口的行为。
+    app.state.logo_limiter = SlidingWindowLimiter(limit=30, window_seconds=60)
     yield
 
 
@@ -210,6 +213,9 @@ def create_app() -> FastAPI:
             "major_count": len(runtime.major_index),
             "private_profiles": len(request.app.state.private_profiles),
             "data_schema": runtime.manifest["schema_version"],
+            "coverage": runtime.supplement.get("coverage", {}),
+            "sources": runtime.supplement.get("sources", []),
+            "gaps": runtime.supplement.get("gaps", []),
         }
 
     def _client_key(request: Request) -> str:
@@ -218,14 +224,21 @@ def create_app() -> FastAPI:
     @application.post("/api/school-assets/batch")
     def school_assets_batch(payload: LogoBatchRequest, request: Request) -> dict[str, Any]:
         if not request.app.state.logo_limiter.allow(_client_key(request)):
-            raise HTTPException(status_code=429, detail="校徽获取请求过于频繁")
-        assets = {school: request.app.state.logos.get(school, fetch=True) for school in dict.fromkeys(payload.schools)}
+            raise HTTPException(status_code=429, detail="校徽获取请求过于频繁", headers={"Retry-After": "60"})
+        schools = list(dict.fromkeys(payload.schools))
+        if not schools:
+            return {"assets": {}}
+        assets: dict[str, Any] = {}
+        with ThreadPoolExecutor(max_workers=min(4, len(schools))) as executor:
+            futures = {school: executor.submit(request.app.state.logos.get, school, fetch=True) for school in schools}
+            for school, future in futures.items():
+                assets[school] = future.result()
         return {"assets": assets}
 
     @application.get("/api/school-assets/{school_name}")
     def school_asset(school_name: str, request: Request, fetch: bool = Query(default=False)) -> dict[str, Any]:
         if fetch and not request.app.state.logo_limiter.allow(_client_key(request)):
-            raise HTTPException(status_code=429, detail="校徽获取请求过于频繁")
+            raise HTTPException(status_code=429, detail="校徽获取请求过于频繁", headers={"Retry-After": "60"})
         return request.app.state.logos.get(school_name, fetch=fetch)
 
     @application.get("/api/school-logo/{filename}")
@@ -241,6 +254,23 @@ def create_app() -> FastAPI:
 
     @application.get("/api/colleges-chat/{school_name}")
     def colleges_chat_school(school_name: str, request: Request) -> dict[str, Any]:
+        public = store(request).supplement.get("schools", {}).get(school_name)
+        if public is not None:
+            reviews = public.get("reviews", [])
+            grouped: dict[str, list] = {}
+            for review in reviews:
+                grouped.setdefault(review["title"], []).append({"id": review.get("source", "匿名"),
+                    "text": review["summary"], "date": review.get("date", "")})
+            first = reviews[0] if reviews else {}
+            return {"available": bool(reviews), "status": "ready" if reviews else "not_found", "school": school_name,
+                    "questions": [{"question": title, "answers": answers} for title, answers in grouped.items()],
+                    "question_count": len(grouped), "answer_count": len(reviews), "source_count": len({r.get("source") for r in reviews}),
+                    "source_url": first.get("source_url", ""), "license": first.get("license", "CC BY-NC-SA 4.0"),
+                    "license_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+                    "source_version": first.get("source_version", ""),
+                    "last_updated": max((r.get("date", "") for r in reviews), default=""),
+                    "cache_status": "runtime_package", "message": "公开资料中没有精确匹配的院校问卷" if not reviews else "",
+                    "disclaimer": "学生问卷反馈，联系方式已省略；请核对日期和校区，不代表学校官方承诺。"}
         return request.app.state.colleges_chat.get_school(school_name)
 
     @application.get("/api/web-verify")

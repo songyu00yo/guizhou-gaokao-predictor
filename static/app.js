@@ -2,8 +2,6 @@ import { state } from "./js/state.js";
 import { fetchJson, fetchRecommendations, isAbortError } from "./js/api.js";
 import { prefersReducedMotion } from "./js/motion.js";
 
-const DISPLAY_DIFFICULTY_COEFFICIENT = "2.5251";
-
 const RISK_COLORS = {
   强冲: "#c93838",
   冲: "#c96b12",
@@ -32,16 +30,6 @@ function loadScript(src) {
 
 function ensureECharts() {
   return window.echarts ? Promise.resolve() : loadScript("/static/echarts.min.js");
-}
-
-function ensureMathJax() {
-  if (window.MathJax?.typesetPromise) return Promise.resolve();
-  window.MathJax = {
-    tex: { inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]] },
-    svg: { fontCache: "global" },
-    options: { enableMenu: false },
-  };
-  return loadScript("https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js");
 }
 
 function isMotionQaMode() {
@@ -82,6 +70,31 @@ function setText(id, value) {
   if (node) node.textContent = value;
 }
 
+// 入场动画只对第一次出现的内容播放；同一份数据重渲染时不再重放，避免整屏闪烁。
+const enteredContent = new Set();
+
+function markEntering(node, key) {
+  if (!node || !key || enteredContent.has(key)) return;
+  enteredContent.add(key);
+  // 动画结束后摘掉类名，下一次换内容才能重新触发一次入场。
+  node.classList.remove("is-entering");
+  node.classList.add("is-entering");
+  // 每次触发带一个序号，快速连续切换时旧回调不会掐掉新动画。
+  const token = (node.__enterToken || 0) + 1;
+  node.__enterToken = token;
+  const clear = () => {
+    if (node.__enterToken === token) node.classList.remove("is-entering");
+  };
+  node.addEventListener("animationend", clear, { once: true });
+  // 隐藏视图里的动画不会触发 animationend，兜底清掉类名。
+  window.setTimeout(clear, 600);
+}
+
+// 列表首帧只整体淡入一次：逐行动画在筛选/排序时会造成整表闪烁。
+function markFirstPaint(root, scope) {
+  markEntering(root, `${scope}:first-paint`);
+}
+
 function toast(message) {
   const node = el("toast");
   if (!node) return;
@@ -91,69 +104,15 @@ function toast(message) {
   toast.timer = setTimeout(() => { node.hidden = true; }, 2300);
 }
 
-function setEntryLoaderProgress(value) {
-  const loader = el("entryLoader");
-  if (!loader) return;
-  const progress = Math.max(0, Math.min(1, Number(value) || 0));
-  loader.style.setProperty("--entry-progress", progress.toFixed(3));
-  const segmentValues = {
-    rank: Math.min(progress / 0.34, 1),
-    plan: Math.max(0, Math.min((progress - 0.34) / 0.34, 1)),
-    school: Math.max(0, Math.min((progress - 0.68) / 0.32, 1)),
-  };
-  Object.entries(segmentValues).forEach(([name, value]) => {
-    loader.style.setProperty(`--entry-${name}`, value.toFixed(3));
-  });
-}
-
-function entryEase(value) {
-  const t = Math.max(0, Math.min(1, value));
-  return 1 - Math.pow(1 - t, 3);
-}
-
-function animateEntryLoaderTo(target, duration = 760) {
-  const loader = el("entryLoader");
-  if (!loader) return Promise.resolve();
-  const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
-  const start = Number(window.getComputedStyle(loader).getPropertyValue("--entry-progress")) || 0;
-  const end = Math.max(start, Math.max(0, Math.min(1, Number(target) || 0)));
-  if (reduced || duration <= 0 || Math.abs(end - start) < 0.002) {
-    setEntryLoaderProgress(end);
-    return Promise.resolve();
-  }
-  const token = Symbol("entry-loader");
-  state.entryLoaderAnimation = token;
-  const startTime = performance.now();
-  return new Promise((resolve) => {
-    const frame = (now) => {
-      if (state.entryLoaderAnimation !== token) {
-        resolve();
-        return;
-      }
-      const elapsed = Math.min(1, (now - startTime) / duration);
-      const eased = entryEase(elapsed);
-      setEntryLoaderProgress(start + (end - start) * eased);
-      if (elapsed < 1) {
-        requestAnimationFrame(frame);
-      } else {
-        resolve();
-      }
-    };
-    requestAnimationFrame(frame);
-  });
-}
+// 开场只用于覆盖首屏等待：数据就绪后 1.2s 内必收束，不再强制浏览 5 秒动画。
+const ENTRY_MIN_DURATION = 1200;
+const ENTRY_FADE_DURATION = 220;
 
 function setEntryLoaderStep(step, text) {
   const loader = el("entryLoader");
   if (!loader) return;
-  const steps = ["rank", "plan", "school"];
-  const activeIndex = steps.indexOf(step);
   loader.dataset.step = step || "";
   setText("entryLoaderText", text || "");
-  loader.querySelectorAll("[data-loader-step]").forEach((node) => {
-    node.classList.toggle("active", node.dataset.loaderStep === step);
-    node.classList.toggle("done", steps.indexOf(node.dataset.loaderStep) < activeIndex);
-  });
 }
 
 function showEntryLoader() {
@@ -161,18 +120,21 @@ function showEntryLoader() {
   if (!loader) return;
   loader.hidden = false;
   loader.dataset.visible = "true";
-  setEntryLoaderProgress(0);
+  state.entryStarted = performance.now();
+  state.entryMinimum = new Promise(resolve => setTimeout(resolve, prefersReducedMotion() ? 120 : ENTRY_MIN_DURATION));
   setText("entryLoaderTitle", "正在生成你的志愿决策表");
-  requestAnimationFrame(() => setEntryLoaderStep("rank", "正在按2026一分一段表换算位次并校准基准。"));
+  setText("entryNumbers", `${state.score} 分`);
+  setEntryLoaderStep("rank", "正在按2026一分一段表换算位次并校准基准。");
 }
 
 async function hideEntryLoader() {
   const loader = el("entryLoader");
   if (!loader || loader.hidden) return;
-  await animateEntryLoaderTo(1, 120);
+  await state.entryMinimum;
   loader.dataset.visible = "false";
-  await new Promise((resolve) => window.setTimeout(resolve, prefersReducedMotion() ? 0 : 160));
+  await new Promise((resolve) => window.setTimeout(resolve, prefersReducedMotion() ? 0 : ENTRY_FADE_DURATION));
   loader.hidden = true;
+  renderRankTrendMini();
 }
 
 function waitForVisibleLogos(timeout = 5000) {
@@ -250,9 +212,183 @@ function textOr(value, fallback = "待核验") {
 }
 
 function tuitionText(item) {
+  if (item && Object.hasOwn(item, "tuition")) {
+    const tuition = item.tuition;
+    if (tuition === null || tuition === undefined || tuition === "") return "待核验";
+    const text = String(tuition).trim();
+    return /元\s*\/\s*年/.test(text) ? text : `${text}元/年`;
+  }
   if (item?.tuition_range_2025) return `${item.tuition_range_2025}元/年`;
   const value = asNumber(item?.tuition_2025, 0);
   return value ? `${formatInt(value)}元/年` : "待核验";
+}
+
+function tuitionSortValue(item) {
+  const raw = item && Object.hasOwn(item, "tuition") ? item.tuition : item?.tuition_2025;
+  if (raw === null || raw === undefined || raw === "") return 999999;
+  const value = Number(String(raw).replaceAll(",", "").match(/\d+(?:\.\d+)?/)?.[0]);
+  return Number.isFinite(value) ? value : 999999;
+}
+
+function schoolCity(item) {
+  return textOr(item?.city || guide(item).school_city || guide(item).location || ladder(item).school_location, "城市待核验");
+}
+
+function schoolOwnership(item) {
+  return textOr(item?.ownership || item?.school_ownership_label, "性质待核验");
+}
+
+function normalizeOwnershipCategory(value) {
+  const text = textOr(value, "");
+  if (text === "待核验" || text === "性质待核验") return "待核验";
+  return text.replace(/本科\s*$/, "");
+}
+
+function safeHttpUrl(value) {
+  try {
+    const url = new URL(String(value ?? "").trim());
+    return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
+function httpLinkHtml(value, label = value) {
+  const url = safeHttpUrl(value);
+  if (!url) return "";
+  return `<a href="${escapeHtml(url)}" target="_blank" rel="noreferrer">${escapeHtml(label)}</a>`;
+}
+
+function officialSiteHtml(value) {
+  const text = String(value ?? "").trim();
+  return httpLinkHtml(text) || escapeHtml(text || "官网待补全");
+}
+
+function historyYearIndex(history, year) {
+  const target = String(year);
+  return (history?.years || []).findIndex((label) => String(label).match(/20\d{2}/)?.[0] === target);
+}
+
+function nullableHistoryValue(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function historyRecord(item, year) {
+  const record = item?.[`history_${year}`];
+  if (record && typeof record === "object") {
+    return {
+      year: record.year ?? year,
+      score: nullableHistoryValue(record.min_score),
+      rank: nullableHistoryValue(record.min_rank),
+      plan: nullableHistoryValue(record.plan_count),
+      admitted: nullableHistoryValue(record.admitted_count),
+      sourceUrl: record.source_url || null,
+    };
+  }
+  const history = item?.history;
+  const label = year === 2027 ? "2027预测" : String(year);
+  const index = historyYearIndex(history, year);
+  if (index >= 0) {
+    return {
+      year: history.years[index],
+      rank: nullableHistoryValue(history.rank?.[index]),
+      score: nullableHistoryValue(history.score?.[index]),
+      plan: nullableHistoryValue(history.plan?.[index]),
+      admitted: nullableHistoryValue(history.admitted?.[index]),
+      sourceUrl: null,
+    };
+  }
+  if (year === 2027) {
+    const scoreRange = String(item?.score_range || "");
+    const predictedScore = nullableHistoryValue(item?.predicted_score);
+    return {
+      year: label,
+      rank: nullableHistoryValue(item?.predicted_rank || item?.rank_mid),
+      score: predictedScore,
+      scoreRange: scoreRange || null,
+      plan: null,
+      admitted: null,
+      sourceUrl: null,
+    };
+  }
+  return { year: label, score: null, rank: null, plan: null, admitted: null, sourceUrl: null };
+}
+
+function historyScoreText(record, year) {
+  if (record.score !== null) return `${formatInt(record.score)}分`;
+  if (year === 2027 && record.scoreRange) return `${escapeHtml(record.scoreRange)}分`;
+  return "-分";
+}
+
+function historyLineText(item, year) {
+  const record = historyRecord(item, year);
+  const label = year === 2027 ? "27预测" : String(year).slice(-2);
+  const plan = record.plan === null ? "-" : formatInt(record.plan);
+  const admitted = record.admitted === null ? "-" : formatInt(record.admitted);
+  const scoreRank = `${historyScoreText(record, year)} / ${record.rank === null ? "待核验" : `${formatInt(record.rank)}名`}`;
+  const detail = `${scoreRank} · 计划${plan} / 录取${admitted}`;
+  // 行内只放分数与位次，计划/录取放进 title，避免窄列被撑成多行。
+  return `<span title="${escapeHtml(`${year}年：${detail}`)}"><b>${label}</b>${scoreRank}</span>`;
+}
+
+function historySummaryText(item) {
+  return [2024, 2025, 2026, 2027].map((year) => {
+    const record = historyRecord(item, year);
+    const label = year === 2027 ? "2027预测" : String(year);
+    const rank = record.rank === null ? "位次待核验" : `${formatInt(record.rank)}名`;
+    return `${label} ${historyScoreText(record, year)}/${rank}`;
+  }).join("；");
+}
+
+function profileCoverageText(profile) {
+  const coverage = profile?.headline?.coverage;
+  if (coverage === null || coverage === undefined || coverage === "") return "未提供";
+  return typeof coverage === "number" || /^\d+(\.\d+)?$/.test(String(coverage)) ? `${coverage}%` : String(coverage);
+}
+
+function validCount(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const count = Number(value);
+  return Number.isFinite(count) ? count : null;
+}
+
+function coverageStats(coverage) {
+  const schoolsTotal = validCount(coverage?.schools_total);
+  const programsTotal = validCount(coverage?.programs_total);
+  return [
+    ["院校基础资料", validCount(coverage?.schools_with_basic), schoolsTotal],
+    ["院校生活资料", validCount(coverage?.schools_with_life), schoolsTotal],
+    ["院校官网", validCount(coverage?.schools_with_official_site), schoolsTotal],
+    ["2024录取历史", validCount(coverage?.programs_with_history_2024), programsTotal],
+    ["2025录取历史", validCount(coverage?.programs_with_history_2025), programsTotal],
+    ["2026录取历史", validCount(coverage?.programs_with_history_2026), programsTotal],
+    ["学费", validCount(coverage?.programs_with_tuition), programsTotal],
+    ["选科要求", validCount(coverage?.programs_with_subject_requirement), programsTotal],
+  ].filter(([, count, total]) => count !== null && total !== null);
+}
+
+function coverageCountText(count, total) {
+  return `${formatCount(count)}/${formatCount(total)} · ${coveragePercentText(count, total)}`;
+}
+
+function coveragePercentText(count, total) {
+  return total > 0 ? `${((count / total) * 100).toFixed(1)}%` : "比例待核验";
+}
+
+function formatCount(value) {
+  const count = validCount(value);
+  return count === null ? "待提供" : Math.round(count).toLocaleString("zh-CN");
+}
+
+function resourceCoverageCards(coverage) {
+  return coverageStats(coverage).map(([title, count, total]) => ({
+    title,
+    status: coverageCountText(count, total),
+    description: "资料覆盖统计由后端按可用院校或专业记录汇总。",
+    confidence: "统计值",
+  }));
 }
 
 function dormText(item) {
@@ -269,12 +405,13 @@ function employmentText(item) {
 }
 
 function probabilityText(item) {
-  return formatPercent(admissionProbability(item));
+  const probability = admissionProbability(item);
+  return probability === null ? "未提供" : formatPercent(probability);
 }
 
 function trendDirection(item) {
-  const r24 = asNumber(item?.rank_2024, 0);
-  const r25 = asNumber(item?.rank_2025, 0);
+  const r24 = historyRecord(item, 2024).rank || 0;
+  const r25 = historyRecord(item, 2025).rank || 0;
   if (!r24 || !r25) return "历史待核验";
   const delta = r25 - r24;
   if (Math.abs(delta) < Math.max(800, r24 * 0.015)) return "基本持平";
@@ -282,12 +419,9 @@ function trendDirection(item) {
 }
 
 function yearTrendHtml(item) {
-  const predicted = asNumber(item?.predicted_rank || item?.rank_low, 0);
   return `
     <div class="year-stack">
-      <span><b>24</b>${formatInt(item?.score_2024)}分 / ${formatInt(item?.rank_2024)}名</span>
-      <span><b>25</b>${formatInt(item?.score_2025)}分 / ${formatInt(item?.rank_2025)}名</span>
-      <span><b>26</b>${escapeHtml(item?.score_range || "-")} / ${formatInt(predicted)}名</span>
+      ${[2024, 2025, 2026, 2027].map((year) => historyLineText(item, year)).join("")}
       <em>${escapeHtml(trendDirection(item))}</em>
     </div>
   `;
@@ -295,58 +429,151 @@ function yearTrendHtml(item) {
 
 function coverageScore(item) {
   const values = [
-    guide(item).dormitory || ladder(item).dormitory_ladder,
+    hasLifeData(item),
+    guide(item).dormitory,
     guide(item).canteen,
-    guide(item).employment,
-    guide(item).postgraduate_recommendation,
     guide(item).transfer_policy,
     ladder(item).campus_facilities,
     guide(item).location || ladder(item).school_location,
   ];
-  return values.filter((value) => textOr(value, "")).length;
+  return values.filter((value) => typeof value === "boolean" ? value : Boolean(textOr(value, ""))).length;
 }
 
-function attachLogoAsset(school, asset) {
-  const normalized = String(school || "").trim();
-  state.logoCache[normalized] = asset;
-  state.list.forEach((item) => {
-    if (item.school === school) item.logo_asset = asset;
-  });
-  if (state.selected?.school === school) {
-    state.selected.logo_asset = asset;
-    if (state.selectedProfile) state.selectedProfile.asset = asset;
+function hasLifeData(item) {
+  return item?.has_life_data === true || item?.has_life_data === 1;
+}
+
+const logoKey = school => String(school || "").normalize("NFKC").replace(/\s+/g, "");
+
+// 校徽索引落在 localStorage：刷新页面不再重复请求接口，避免撞上 5 次/分钟限流。
+const LOGO_CACHE_KEY = "gz-logo-cache-v1";
+const LOGO_CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
+
+function readLogoCache() {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(LOGO_CACHE_KEY) || "{}");
+    const now = Date.now();
+    const fresh = {};
+    Object.entries(parsed || {}).forEach(([key, entry]) => {
+      if (!entry?.logo_url) return;
+      if (entry.at && now - entry.at > LOGO_CACHE_TTL) return;
+      fresh[key] = entry;
+    });
+    return fresh;
+  } catch {
+    return {};
   }
 }
 
+let logoCacheTimer = 0;
+function persistLogoCache() {
+  clearTimeout(logoCacheTimer);
+  logoCacheTimer = window.setTimeout(() => {
+    try {
+      window.localStorage.setItem(LOGO_CACHE_KEY, JSON.stringify(state.logoCache));
+    } catch {
+      // 隐私模式或配额不足时忽略，不影响渲染。
+    }
+  }, 300);
+}
+
+function primeLogoCache() {
+  Object.assign(state.logoCache, readLogoCache());
+  [...state.list, ...(state.alternates || [])].forEach(item => {
+    const cached = state.logoCache[logoKey(item.school)];
+    if (cached?.logo_url) item.logo_asset = item.logo_asset || cached;
+  });
+}
+
+const logoPending = new Map();
+const logoInFlight = new Set();
+function attachLogoAsset(school, asset) {
+  const key = logoKey(school);
+  state.logoCache[key] = asset?.logo_url ? { ...asset, at: Date.now() } : asset;
+  if (asset?.logo_url) persistLogoCache();
+  [...state.list, ...(state.alternates || [])].forEach(item => {
+    if (logoKey(item.school) === key) item.logo_asset = asset;
+  });
+  if (logoKey(state.selected?.school) === key) {
+    state.selected.logo_asset = asset;
+    if (state.selectedProfile) state.selectedProfile.asset = asset;
+  }
+  document.querySelectorAll(".school-logo[data-school]").forEach(node => {
+    if (logoKey(node.dataset.school) !== key) return;
+    const holder = document.createElement("div");
+    holder.innerHTML = logoHtml(asset, school);
+    node.replaceWith(holder.firstElementChild);
+  });
+  updateLogoCount();
+}
+function updateLogoCount() {
+  const schools = [...new Set(state.list.map(item => logoKey(item.school)))];
+  // 以是否拿到可用图片为准：状态字段有 ready/cached 等多种取值，只看 status 会误报 0。
+  const ready = schools.filter(key => Boolean(state.logoCache[key]?.logo_url)).length;
+  setText("logoCoverage", `${ready}/${schools.length} 所`);
+}
+let logoRetryTimer = 0;
+let logoRetryCount = 0;
+
+// 被限流时不丢批次：等窗口过去后自动续跑，用户不需要刷新页面。
+function scheduleLogoRetry(response) {
+  if (logoRetryTimer || logoRetryCount >= 6) return;
+  logoRetryCount += 1;
+  const advice = Number(response?.headers?.get?.("Retry-After") || 60);
+  const wait = Math.min(30, Math.max(10, advice)) * 1000;
+  logoRetryTimer = window.setTimeout(() => {
+    logoRetryTimer = 0;
+    void autoFetchLogos([]);
+  }, wait);
+}
+
+function releaseLogoBatch(batch, { requeue = true } = {}) {
+  batch.forEach(school => {
+    const key = logoKey(school);
+    logoInFlight.delete(key);
+    if (requeue) logoPending.set(key, school);
+  });
+}
+
 async function autoFetchLogos(rows) {
+  for (const item of rows || []) {
+    const key = logoKey(item.school);
+    if (state.logoCache[key]?.logo_url || logoInFlight.has(key)) continue;
+    logoPending.set(key, item.school);
+  }
   if (state.logoQueueRunning) return state.logoQueuePromise;
-  const schools = [...new Set((rows || []).map((item) => item.school).filter(Boolean))]
-    .filter((school) => state.logoCache[school]?.status !== "ready");
-  if (!schools.length) return Promise.resolve();
   state.logoQueueRunning = true;
   state.logoQueuePromise = (async () => {
-    for (let index = 0; index < schools.length; index += 20) {
-      const batch = schools.slice(index, index + 20);
-      const data = await fetchJson("/api/school-assets/batch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ schools: batch }),
-      });
-      Object.entries(data.results || {}).forEach(([school, asset]) => attachLogoAsset(school, asset));
-      renderPriorityList();
-      renderTable();
-      renderDetail();
-      renderProfile();
-      renderResources();
+    while (logoPending.size) {
+      // 后端 LogoBatchRequest 限制单批最多 20 个，这里与之对齐。
+      const batch = [...logoPending.values()].slice(0, 20);
+      batch.forEach(school => { logoPending.delete(logoKey(school)); logoInFlight.add(logoKey(school)); });
+      let response;
+      try {
+        response = await fetch("/api/school-assets/batch", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ schools: batch }),
+        });
+      } catch (error) {
+        releaseLogoBatch(batch);
+        console.warn("校徽补取暂不可用", error);
+        return;
+      }
+      if (response.status === 429) {
+        releaseLogoBatch(batch);
+        scheduleLogoRetry(response);
+        return;
+      }
+      if (!response.ok) {
+        releaseLogoBatch(batch);
+        return;
+      }
+      const data = await response.json();
+      Object.entries(data.assets || {}).forEach(([school, asset]) => attachLogoAsset(school, asset));
+      releaseLogoBatch(batch, { requeue: false });
+      logoRetryCount = 0;
     }
-  })()
-    .catch((error) => {
-      console.warn("logo batch fetch failed", error);
-    })
-    .finally(() => {
-      state.logoQueueRunning = false;
-      state.logoQueuePromise = null;
-    });
+  })().finally(() => { logoInFlight.clear(); state.logoQueueRunning = false; });
   return state.logoQueuePromise;
 }
 
@@ -382,26 +609,18 @@ function updateNavIndicator() {
   setNavIndicatorToButton(active, "active");
 }
 
-function restartViewReveal(node) {
-  if (!node) return;
-  node.classList.remove("view-enter");
-  void node.offsetWidth;
-  node.classList.add("view-enter");
-  window.setTimeout(() => node.classList.remove("view-enter"), 320);
+// 视图切换只依靠 CSS 里的 .view.active 入场；不再强制回流重放动画。
+function resizeCharts() {
+  Object.values(state.charts).forEach((chart) => chart?.resize());
 }
 
 function switchView(view) {
-  const applyViewChange = () => {
-    document.querySelectorAll(".primary-nav button").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
-    document.querySelectorAll(".view").forEach((node) => {
-      const active = node.id === `view-${view}`;
-      node.classList.toggle("active", active);
-      if (active) restartViewReveal(node);
-    });
-    updateNavIndicator();
-    setTimeout(() => Object.values(state.charts).forEach((chart) => chart?.resize()), 80);
-  };
-  applyViewChange();
+  document.querySelectorAll(".primary-nav button").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
+  document.querySelectorAll(".view").forEach((node) => {
+    node.classList.toggle("active", node.id === `view-${view}`);
+  });
+  updateNavIndicator();
+  requestAnimationFrame(resizeCharts);
 }
 
 function bindNavMotion() {
@@ -436,6 +655,7 @@ async function loadResources() {
   try {
     state.resources = await fetchJson("/api/resources/summary");
     renderResources();
+    renderLeftAnalytics();
     renderMobileApp();
   } catch (error) {
     console.error(error);
@@ -443,15 +663,43 @@ async function loadResources() {
   }
 }
 
+async function loadModelReport() {
+  state.modelReport = null;
+  try {
+    state.modelReport = await fetchJson("/api/v1/model-report");
+  } catch (error) {
+    console.warn("模型回测报告暂不可用", error);
+  }
+  renderPrecisionPanels();
+}
+
 async function generateList(options = {}) {
   const showLoader = Boolean(options.entryLoader);
-  const scoreText = String(el("scoreInput")?.value ?? state.score ?? "").trim();
-  if (!scoreText) return;
+  const scoreInput = el("scoreInput");
+  const rankInput = el("rankInput");
+  if (!scoreInput?.reportValidity()) {
+    scoreInput?.focus();
+    return;
+  }
+  if (rankInput && !rankInput.reportValidity()) {
+    rankInput.focus();
+    return;
+  }
+  const scoreText = String(scoreInput.value ?? "").trim();
+  const score = Number(scoreText);
+  const currentRank = state.currentRank;
+  if (!Number.isInteger(score) || score < 0 || score > 750) {
+    scoreInput.reportValidity();
+    scoreInput.focus();
+    return;
+  }
+  if (currentRank !== null && (!Number.isInteger(currentRank) || currentRank < 1)) {
+    rankInput?.reportValidity();
+    rankInput?.focus();
+    return;
+  }
   if (showLoader && !options.loaderVisible) showEntryLoader();
-  state.score = asNumber(scoreText, 0);
-  // 位次由后端按2026一分一段表自动换算；state.currentRank 留空，请求时不传 current_rank
-  state.currentRank = null;
-  state.difficultyDelta = asNumber(state.difficultyDelta, 0.0825);
+  state.score = score;
   state.page = 1;
   const generateButton = el("generateBtn");
   const refreshButton = el("refreshBtn");
@@ -464,22 +712,27 @@ async function generateList(options = {}) {
   setText("statusText", "正在生成...");
   try {
     if (showLoader) setEntryLoaderStep("rank", "正在按2026一分一段表换算位次。");
-    if (showLoader) void animateEntryLoaderTo(0.32, 180);
-    // 请求必须立即发出；进度动画只表达真实请求阶段，不作为等待门槛。
-    const data = await fetchRecommendations({ score: state.score, risk: state.risk });
+
+    // 请求与品牌开场同时开始，开场结束后仅在请求未完成时显示等待。
+    if (showLoader) state.entryMinimum.then(() => { if (document.body.dataset.motionStatus === "loading") setEntryLoaderStep("school", "仍在等待推荐数据，请稍候…"); });
+    const request = { score: state.score, risk: state.risk };
+    if (state.currentRank !== null) request.current_rank = state.currentRank;
+    const data = await fetchRecommendations(request);
     const hidden = new Set(state.hiddenUnitIds || []);
     state.list = (data.list || []).filter((item) => !hidden.has(item.unit_id));
     state.alternates = (data.alternates || []).filter((item) => !hidden.has(item.unit_id));
     fillOpenSlots();
+    primeLogoCache();
     state.list.forEach((item) => {
       if (item.logo_asset) attachLogoAsset(item.school, item.logo_asset);
     });
     if (showLoader) setEntryLoaderStep("plan", "已完成计划校准和风险分层。");
-    if (showLoader) void animateEntryLoaderTo(0.72, 120);
+
     state.summary = data.summary || {};
+    if (showLoader) setText("entryNumbers", `${state.score} 分 · ${formatInt(state.summary.predicted_user_rank ?? state.summary.user_rank)} 名`);
     renderAll();
     if (showLoader) setEntryLoaderStep("school", "正在生成院校排序、详情卡片和资料说明。");
-    if (showLoader) void animateEntryLoaderTo(0.9, 100);
+
     const first = [...state.list].sort((a, b) => (coverageScore(b) * 2 + asNumber(b.confidence_score)) - (coverageScore(a) * 2 + asNumber(a.confidence_score)))[0] || filteredList()[0] || state.list[0];
     if (first) void openDetail(first.unit_id);
     if (!isMotionQaMode()) {
@@ -524,7 +777,9 @@ function filteredList() {
     const guideText = [
       item.school,
       item.major,
-      guide(item).school_city,
+      item.city,
+      item.subject_requirement,
+      schoolCity(item),
       guide(item).dormitory,
       guide(item).canteen,
       guide(item).employment,
@@ -533,20 +788,17 @@ function filteredList() {
       ladder(item).campus_facilities,
     ].join(" ").toLowerCase();
     const riskOk = state.riskFilter === "all" || (state.riskFilter === "冲" ? ["强冲", "冲"].includes(item.risk_level) : item.risk_level === state.riskFilter);
-    const ownershipOk = state.ownershipFilter === "all" || item.school_ownership_label === state.ownershipFilter;
+    const ownershipOk = state.ownershipFilter === "all" || normalizeOwnershipCategory(schoolOwnership(item)) === normalizeOwnershipCategory(state.ownershipFilter);
     const quickOk =
       state.quickFilter === "all" ||
-      (state.quickFilter === "dorm" && textOr(guide(item).dormitory || ladder(item).dormitory_ladder, "")) ||
-      (state.quickFilter === "canteen" && textOr(guide(item).canteen, "")) ||
-      (state.quickFilter === "employment" && textOr(guide(item).employment || guide(item).postgraduate_recommendation, "")) ||
-      (state.quickFilter === "review" && coverageScore(item) >= 4);
+      (state.quickFilter === "life" && hasLifeData(item));
     return riskOk && ownershipOk && quickOk && (!query || guideText.includes(query));
   });
   const sorters = {
     order: (a, b) => asNumber(a.order, 999) - asNumber(b.order, 999),
-    confidence: (a, b) => admissionProbability(b) - admissionProbability(a),
+    confidence: compareProbabilityDesc,
     life: (a, b) => coverageScore(b) - coverageScore(a),
-    tuition: (a, b) => asNumber(a.tuition_2025, 999999) - asNumber(b.tuition_2025, 999999),
+    tuition: (a, b) => tuitionSortValue(a) - tuitionSortValue(b),
   };
   return rows.sort(sorters[state.sort] || sorters.order);
 }
@@ -563,7 +815,7 @@ function renderAll() {
   renderLifeGrid();
   renderSources();
   renderMobileApp();
-  setTimeout(() => Object.values(state.charts).forEach((chart) => chart?.resize()), 80);
+  requestAnimationFrame(resizeCharts);
 }
 
 function isMobileLayout() {
@@ -595,10 +847,10 @@ function mobileCard(item, index) {
   return `
     <article class="mobile-card" data-unit="${escapeHtml(item.unit_id)}" style="--i:${index}">
       <div class="mobile-card-head">
-        ${logoHtml(item.logo_asset || state.logoCache[item.school], item.school)}
+        ${logoHtml(item.logo_asset || state.logoCache[logoKey(item.school)], item.school)}
         <div>
           <h2>${escapeHtml(item.school)}</h2>
-          <p>${escapeHtml(item.major)} · ${escapeHtml(item.school_ownership_label || "待核验")}</p>
+          <p>${escapeHtml(item.major)} · ${escapeHtml(schoolOwnership(item))}</p>
         </div>
         <span class="pill ${riskTone(item)}">${escapeHtml(item.risk_level || "待判断")}</span>
       </div>
@@ -606,7 +858,6 @@ function mobileCard(item, index) {
         <span>分数 ${escapeHtml(item.score_range || "-")}</span>
         <span>位次 ${escapeHtml(item.rank_range || "-")}</span>
         <span>概率 ${probabilityText(item)}</span>
-        <span>资料 ${coverageScore(item)}/7</span>
         <span>学费 ${escapeHtml(tuitionText(item))}</span>
         <span>${escapeHtml(rankGapText(item))}</span>
       </div>
@@ -643,7 +894,7 @@ function renderMobileOverview() {
         ${mobileKpi("当前分", state.score || "-", "刷新后需重新填写")}
         ${mobileKpi("当前位次", formatInt(summary.predicted_user_rank || summary.user_rank), "按2026一分一段表")}
         ${mobileKpi("推荐数量", total || "-", "本科批候选")}
-        ${mobileKpi("资料文件", formatInt(state.resources?.total_files), "本地资料库")}
+        ${mobileKpi("资料源文件", formatCount(state.resources?.coverage?.source_files ?? state.resources?.total_files), "资料统计")}
       </div>
       <article class="mobile-detail-block">
         <h2>风险分布</h2>
@@ -652,7 +903,7 @@ function renderMobileOverview() {
       <div class="mobile-section-title">
         <div>
           <h1>优先查看</h1>
-          <p>按录取概率、资料完整度和生活信息综合排序。</p>
+          <p>按录取概率、可用生活信息和性价比综合排序。</p>
         </div>
       </div>
       <div class="mobile-list">${topRows || "<article class='mobile-card'><p>暂无推荐，请返回输入分数重新生成。</p></article>"}</div>
@@ -702,10 +953,10 @@ function renderMobileDetailView() {
   return `
     <section class="mobile-step">
       <article class="mobile-card mobile-detail-hero">
-        ${logoHtml(profile?.asset || item.logo_asset || state.logoCache[item.school], item.school)}
+        ${logoHtml(profile?.asset || item.logo_asset || state.logoCache[logoKey(item.school)], item.school)}
         <div>
           <h2>${escapeHtml(item.school)}</h2>
-          <p>${escapeHtml(item.major)} · ${escapeHtml(item.school_ownership_label || "待核验")} · ${escapeHtml(item.school_tier_label || "普通本科")}</p>
+          <p>${escapeHtml(item.major)} · ${escapeHtml(schoolOwnership(item))} · ${escapeHtml(textOr(item.school_tier_label, "层次待核验"))}</p>
         </div>
       </article>
       <button class="mobile-dismiss" id="mobileDismissCurrentBtn" type="button">不感兴趣</button>
@@ -713,11 +964,17 @@ function renderMobileDetailView() {
         ${mobileKpi("预测分数", item.score_range || "-")}
         ${mobileKpi("预测位次", item.rank_range || "-")}
         ${mobileKpi("录取概率", probabilityText(item))}
-        ${mobileKpi("资料完整度", `${profile?.headline?.coverage ?? coverageScore(item) * 14}%`)}
+        ${mobileKpi("资料覆盖", profileCoverageText(profile))}
       </div>
       <article class="mobile-detail-block">
         <h2>为什么推荐</h2>
         <p>${escapeHtml(item.explanation || "暂无推荐解释")}</p>
+      </article>
+      <article class="mobile-detail-block">
+        <h2>院校与选科</h2>
+        <p>城市：${escapeHtml(schoolCity(item))}</p>
+        <p>选科要求：${escapeHtml(textOr(item.subject_requirement, "待核验"))}</p>
+        <p>学校官网：${officialSiteHtml(item.official_site)}</p>
       </article>
       <article class="mobile-detail-block">
         <h2>历年数据</h2>
@@ -745,27 +1002,31 @@ function renderMobileDetailView() {
 
 function renderMobileSourcesView() {
   const resources = state.resources || {};
-  const cards = resources.source_cards || [];
+  const cards = [...(resources.source_cards || []), ...resourceCoverageCards(resources.coverage)];
+  const backtest = state.modelReport?.time_out_2026_metrics_without_future_plan;
+  const backtestSummary = backtest
+    ? `${formatCount(backtest.rows)} 个样本 · 平均绝对位次误差 ${formatCount(backtest.mae_rank)} 名 · 10%误差内 ${formatPercent(backtest.within_10pct, 1)}`
+    : "模型回测报告未提供。";
   return `
     <section class="mobile-step">
       <div class="mobile-section-title">
         <div>
           <h1>资料说明</h1>
-          <p>按手机阅读顺序展示算法公式、数学图像和数据来源。</p>
+          <p>展示实际模型结构、回测指标与资料覆盖统计。</p>
         </div>
       </div>
       <div class="mobile-sources-grid">
         <article class="mobile-source-card">
-          <h2>概率位次模型</h2>
-          <p>\\(P(A_i|X)=\\frac{P(X|A_i)P(A_i)}{\\sum_jP(X|A_j)P(A_j)}\\)</p>
-          <p>\\(U_i=\\sum_k w_kx_{ik}-\\eta Risk_i+\\mu Trust_i\\)</p>
-          <img src="/static/assets/algorithm/probability-scatter.svg" alt="概率散点图" loading="lazy" />
+          <h2>CatBoost 位次回归</h2>
+          <p>按招生历史和院校专业特征预测2027投档位次。</p>
         </article>
         <article class="mobile-source-card">
-          <h2>Logit 分层与密度带</h2>
-          <p>\\(p_i=\\frac{1}{1+e^{-(a+bR_i+cQ_i)}}\\)</p>
-          <img src="/static/assets/algorithm/logit-curve.svg" alt="Logit 概率曲线" loading="lazy" />
-          <img src="/static/assets/algorithm/density-band.svg" alt="核密度置信带" loading="lazy" />
+          <h2>残差分位区间</h2>
+          <p>使用交叉校准残差估计位次预测区间；区间不是录取保证。</p>
+        </article>
+        <article class="mobile-source-card">
+          <h2>2026时间外回测</h2>
+          <p>${escapeHtml(backtestSummary)}</p>
         </article>
         ${cards.map((item) => `
           <article class="mobile-source-card">
@@ -793,13 +1054,12 @@ function renderMobileApp() {
     sources: renderMobileSourcesView,
   };
   stage.innerHTML = (renderers[state.mobileStep] || renderMobileOverview)();
-  typesetMath(stage);
 }
 
 function normalizeDecisionTableHeader() {
   const headRow = document.querySelector(".decision-table thead tr");
   if (!headRow) return;
-  const labels = ["序", "更换", "校徽", "院校 / 专业", "风险", "24 / 25 / 26", "计划 / 学费", "吃住 / 发展 / 评价", "操作"];
+  const labels = ["序", "更换", "校徽", "院校 / 专业", "风险", "2024 / 2025 / 2026 / 2027预测", "计划 / 学费", "吃住 / 发展 / 评价", "操作"];
   if (headRow.children.length !== labels.length || headRow.children[1]?.textContent.trim() !== "更换") {
     headRow.innerHTML = labels.map((label) => `<th>${label}</th>`).join("");
   }
@@ -815,12 +1075,14 @@ function renderSummary() {
   const reach = asNumber(dist["强冲"]) + asNumber(dist["冲"]);
   const stable = asNumber(dist["稳"]);
   const safe = asNumber(dist["保"]) + asNumber(dist["兜底"]);
-  setText("metricRank2025", formatInt(summary.user_rank));
-  setText("metricRank", formatInt(summary.predicted_user_rank || summary.user_rank));
-  setText("metricRankBasis", "按2026一分一段表");
-  // 主界面位次输入框用后端返回的2026位次自动填充（只读）
+  setText("metricRankCurrent", formatInt(summary.user_rank));
+  setText("metricRankCurrentLabel", state.currentRank === null ? "当前分数映射位次" : "手动输入位次");
+  setText("metricRankCurrentBasis", state.currentRank === null ? "按2026一分一段表" : "用户输入");
+  setText("metricRank", formatInt(state.currentRank ?? summary.predicted_user_rank ?? summary.user_rank));
+  setText("metricRankBasis", state.currentRank === null ? "按2026一分一段表" : "手动输入位次");
+  // 自动换算时展示后端位次；手动输入后保留用户填写值。
   const rankInput = el("rankInput");
-  if (rankInput) rankInput.value = summary.predicted_user_rank || summary.user_rank || "";
+  if (rankInput) rankInput.value = state.currentRank ?? summary.predicted_user_rank ?? summary.user_rank ?? "";
   const entryRankInput = el("entryRankInput");
   if (entryRankInput) entryRankInput.value = summary.predicted_user_rank || summary.user_rank || "";
   setText("metricTotal", total || "-");
@@ -833,31 +1095,6 @@ function renderSummary() {
   setText("riskTotal", `${total || 0} 个`);
   const copy = state.risk === "conservative" ? "保守策略：优先稳保" : state.risk === "aggressive" ? "冲刺策略：适度提高冲校" : "均衡策略：冲稳保均衡";
   setText("strategyCopy", copy);
-}
-
-function estimateRankForScore(score) {
-  const baseRank = asNumber(state.summary?.user_rank, 0) || 120000;
-  const diff = state.score - score;
-  const rank = baseRank * Math.exp(diff * 0.045);
-  return Math.max(1, Math.round(rank));
-}
-
-function segmentBandLabel(score, rank) {
-  if (score >= state.score + 10) return "冲刺段";
-  if (Math.abs(score - state.score) <= 5) return "当前段";
-  if (rank > asNumber(state.summary?.user_rank, 0) * 1.35) return "保底段";
-  return "稳妥段";
-}
-
-function precisionStatus(value, highGood = true) {
-  if (highGood) {
-    if (value >= 0.78) return ["充足", "good"];
-    if (value >= 0.52) return ["适中", "info"];
-    return ["偏低", "warn"];
-  }
-  if (value <= 0.04) return ["优秀", "good"];
-  if (value <= 0.08) return ["良好", "info"];
-  return ["偏高", "warn"];
 }
 
 function syncSelectedRows() {
@@ -886,7 +1123,10 @@ async function openDetail(unitId) {
     .then(async (detail) => {
       if (state.selected?.unit_id !== unitId) return;
       state.selected = detail;
+      const recommendation = [...state.list, ...state.alternates].find((item) => item.unit_id === unitId);
+      if (recommendation) Object.assign(recommendation, detail);
       renderDetail();
+      renderTable();
       syncSelectedRows();
       renderSegmentPrediction();
       renderPrecisionPanels();
@@ -1001,177 +1241,49 @@ function recommendationRankValue(item) {
     item?.predicted_rank ||
     item?.predicted_rank_mid ||
     item?.rank_mid ||
-    item?.rank_2025 ||
+    historyRecord(item, 2026).rank ||
     item?.rank_high ||
     999999999,
     999999999,
   );
 }
 
-async function typesetMath(node) {
-  if (!node) return;
-  try {
-    await ensureMathJax();
-    await window.MathJax.typesetPromise([node]);
-  } catch (error) {
-    console.warn("公式排版资源暂不可用", error);
-  }
-}
-
 function algorithmBriefHtml() {
-  const formulas = [
-    {
-      label: "Rank Transform",
-      title: "分位秩映射",
-      formula: "\\[\\rho=\\Phi^{-1}\\!\\left(1-\\frac{R}{N}\\right)\\]",
-      note: "把原始位次转换为可比较的分位秩坐标。",
-    },
-    {
-      label: "Difficulty Field",
-      title: "情景扰动项",
-      formula: "\\[\\Omega=\\exp(\\alpha\\Delta_D+\\beta\\Delta_P+\\gamma\\Delta_H)\\]",
-      note: "综合难度、计划和热度变化形成情景修正。",
-    },
-    {
-      label: "Confidence Band",
-      title: "风险置信区间",
-      formula: "\\[CI_i=\\hat r_i\\pm z_{.95}\\sqrt{\\sigma_r^2+\\lambda\\sigma_p^2}\\]",
-      note: "给每个候选项生成风险上下界。",
-    },
-    {
-      label: "Utility Rank",
-      title: "多目标效用函数",
-      formula: "\\[U_i=\\sum_k w_kx_{ik}-\\eta\\,Risk_i+\\mu\\,Trust_i\\]",
-      note: "将概率、匹配、风险和可信度合成为推荐分。",
-    },
-    {
-      label: "Bayes Posterior",
-      title: "贝叶斯录取后验",
-      formula: "\\[P(A_i|X)=\\frac{P(X|A_i)P(A_i)}{\\sum_jP(X|A_j)P(A_j)}\\]",
-      note: "用历史样本与当前特征估计候选后验。",
-    },
-    {
-      label: "Entropy Weight",
-      title: "资料权重熵",
-      formula: "\\[w_k=\\frac{1-H_k}{\\sum_j(1-H_j)}\\]",
-      note: "资料越稳定，模型权重越高。",
-    },
-    {
-      label: "Mahalanobis",
-      title: "马氏风险距离",
-      formula: "\\[M_i=(x_i-\\mu)^T\\Sigma^{-1}(x_i-\\mu)\\]",
-      note: "识别偏离常规录取结构的候选项。",
-    },
-    {
-      label: "Logit Layer",
-      title: "Logit 分层函数",
-      formula: "\\[p_i=\\frac{1}{1+e^{-(a+bR_i+cQ_i)}}\\]",
-      note: "将多因子得分压缩为录取概率。",
-    },
-    {
-      label: "Variance Guard",
-      title: "历史方差约束",
-      formula: "\\[V_i=\\sqrt{\\frac{1}{T}\\sum_t(r_{it}-\\bar r_i)^2}\\]",
-      note: "录取波动越大，风险惩罚越强。",
-    },
-    {
-      label: "Markov Chain",
-      title: "风险 Markov 链",
-      formula: "\\[\\pi_{t+1}=\\pi_tP,\\quad P_{ab}=P(z_{t+1}=b|z_t=a)\\]",
-      note: "刻画冲稳保状态的年度迁移。",
-    },
-    {
-      label: "KDE Density",
-      title: "核密度位次场",
-      formula: "\\[\\hat f(r)=\\frac{1}{nh}\\sum_{j=1}^{n}K\\!\\left(\\frac{r-r_j}{h}\\right)\\]",
-      note: "估计候选位次附近的录取密度。",
-    },
-    {
-      label: "Topsis Score",
-      title: "理想解贴近度",
-      formula: "\\[C_i=\\frac{D_i^-}{D_i^++D_i^-}\\]",
-      note: "衡量候选方案接近最优画像的程度。",
-    },
-    {
-      label: "Copula Link",
-      title: "相关结构耦合",
-      formula: "\\[C_\\theta(u,v)=\\Phi_\\theta(\\Phi^{-1}(u),\\Phi^{-1}(v))\\]",
-      note: "描述分数、计划和热度之间的非线性相关。",
-    },
-    {
-      label: "Kalman Smooth",
-      title: "年度状态平滑",
-      formula: "\\[x_t=Fx_{t-1}+Bu_t+\\varepsilon_t\\]",
-      note: "平滑年度波动，降低单年异常影响。",
-    },
-    {
-      label: "Graph Boost",
-      title: "院校图传播",
-      formula: "\\[q^{(t+1)}=\\sigma(Aq^{(t)}W+b)\\]",
-      note: "把相似院校与相近专业的信号相互传播。",
-    },
-    {
-      label: "Robust Trim",
-      title: "稳健截尾校准",
-      formula: "\\[x'_i=\\min(\\max(x_i,Q_{.05}),Q_{.95})\\]",
-      note: "压制极端样本对推荐排序的干扰。",
-    },
-    {
-      label: "Portfolio Risk",
-      title: "志愿组合风险",
-      formula: "\\[\\mathcal R=\\omega^T\\Sigma\\omega-\\lambda\\sum_i\\omega_ip_i\\]",
-      note: "评估整张志愿表的冲稳保组合风险。",
-    },
-    {
-      label: "Trust Fusion",
-      title: "可信源融合",
-      formula: "\\[T_i=1-\\prod_s(1-t_{is})^{\\kappa_s}\\]",
-      note: "把多个来源可信度压缩为统一置信指标。",
-    },
-    {
-      label: "Attention Gate",
-      title: "特征注意力门控",
-      formula: "\\[a_k=\\frac{\\exp(g_k/\\tau)}{\\sum_j\\exp(g_j/\\tau)}\\]",
-      note: "动态放大对当前分数最敏感的特征。",
-    },
-    {
-      label: "Regret Bound",
-      title: "后悔值约束",
-      formula: "\\[L_i=\\max_j U_j-U_i+\\xi\\,Risk_i\\]",
-      note: "控制错过更优方案的潜在损失。",
-    },
-  ];
+  const report = state.modelReport || {};
+  const backtest = report.time_out_2026_metrics_without_future_plan;
+  const calibration = report.crossfit_calibration || {};
+  const backtestText = backtest
+    ? `${formatCount(backtest.rows)} 个样本；平均绝对位次误差 ${formatCount(backtest.mae_rank)} 名；误差在10%内 ${formatPercent(backtest.within_10pct, 1)}`
+    : "模型回测报告未提供。";
+  const coverageValue = calibration.q10_q90_coverage;
+  const intervalText = coverageValue === null || coverageValue === undefined
+    ? "交叉校准覆盖率未提供。"
+    : `Q10—Q90区间的交叉校准覆盖率为 ${formatPercent(coverageValue, 1)}。`;
   return `
     <section class="algorithm-brief source-card">
       <div class="algorithm-showcase">
         <div class="algorithm-hero">
-          <span>Mathematical Decision Layer</span>
-          <h2>概率位次推演模型</h2>
-          <p>系统把位次散点、概率曲线、核密度分布、年度扰动和组合风险压进同一套数学坐标系，输出可解释的冲稳保结构。</p>
-        </div>
-        <figure class="algorithm-visual">
-          <img src="/static/assets/algorithm/probability-scatter.svg" alt="平面直角坐标系概率散点图" loading="lazy" />
-        </figure>
-        <div class="algorithm-visual-grid" aria-label="数学模型图像">
-          <figure><img src="/static/assets/algorithm/logit-curve.svg" alt="Logit 概率曲线图" loading="lazy" /></figure>
-          <figure><img src="/static/assets/algorithm/density-band.svg" alt="核密度与置信带图" loading="lazy" /></figure>
-        </div>
-        <div class="algorithm-metrics">
-          <div><strong>15,018</strong><span>候选专业单元</span></div>
-          <div><strong>5</strong><span>核心 Excel 主库</span></div>
-          <div><strong>0.0825</strong><span>运行态难度变量</span></div>
-          <div><strong>2.5251</strong><span>展示级模型系数</span></div>
+          <span>实际部署模型</span>
+          <h2>CatBoost 位次回归</h2>
+          <p>模型输出2027预测投档位次，并使用校准后的残差分位数生成不确定区间。</p>
         </div>
       </div>
       <div class="formula-grid">
-        ${formulas.map((item) => `
-          <article class="formula-card">
-            <span>${escapeHtml(item.label)}</span>
-            <h3>${escapeHtml(item.title)}</h3>
-            <div class="formula-tex">${item.formula}</div>
-            <p>${escapeHtml(item.note)}</p>
-          </article>
-        `).join("")}
+        <article class="formula-card">
+          <span>预测方法</span>
+          <h3>CatBoost 回归</h3>
+          <p>对招生历史中的院校专业位次进行回归预测。</p>
+        </article>
+        <article class="formula-card">
+          <span>预测区间</span>
+          <h3>残差分位校准</h3>
+          <p>${escapeHtml(intervalText)}</p>
+        </article>
+        <article class="formula-card">
+          <span>2026时间外回测</span>
+          <h3>真实评估统计</h3>
+          <p>${escapeHtml(backtestText)}</p>
+        </article>
       </div>
     </section>
   `;
@@ -1181,43 +1293,15 @@ function renderSources() {
   const node = el("sourcesBoard");
   if (!node) return;
   const resources = state.resources || {};
-  const rootIndexLoaded = Boolean(resources.index_loaded);
-  const auditCards = [
-    {
-      status: rootIndexLoaded ? "全量索引已读取" : "子目录统计",
-      title: "根目录文件使用状态",
-      description: `${rootIndexLoaded ? "目录清单统计到" : "当前可统计到"} ${formatInt(resources.total_files || 0)} 个文件、${formatInt(resources.total_directories || 0)} 个目录、约 ${resources.total_gb || 0} GB；当前推荐模型已正式接入录取分数、招生计划、一分一段、院校资料表和梯度设施表。`,
-      confidence: rootIndexLoaded ? "高" : "中",
-    },
-    {
-      status: "未全文抽取",
-      title: "PDF/图片/试卷/临时网页",
-      description: "这些资料已纳入覆盖统计或来源提示，但没有全部进入预测计算；涉及 OCR、图片识别、网页缓存和大 PDF 全文抽取时，需要分批处理后才能转为可引用结论。",
-      confidence: "中",
-    },
-    {
-      status: "不包装成结论",
-      title: "待核验资料边界",
-      description: "模板、成品输出、临时抓取、重复备份和非贵州/非物理核心材料不会直接影响推荐排序；只在资料说明里提示存在，避免把无关资料混进决策依据。",
-      confidence: "高",
-    },
-    {
-      status: "非商业署名共享",
-      title: "CollegesChat 许可与免责声明",
-      description: "生活质量问卷来自 CollegesChat/university-information，按 CC BY-NC-SA 4.0 展示；内容来源于网络和问卷收集，仅供参考，重要择校决策请结合学校官方信息复核。",
-      confidence: "中",
-    },
-  ];
-  node.innerHTML = algorithmBriefHtml() + [...(resources.source_cards || []), ...auditCards].map((item) => `
+  const cards = [...(resources.source_cards || []), ...resourceCoverageCards(resources.coverage)];
+  node.innerHTML = algorithmBriefHtml() + cards.map((item) => `
     <article class="source-card">
-      <span>${escapeHtml(item.status)}</span>
-      <h3>${escapeHtml(item.title)}</h3>
-      <p>${escapeHtml(item.description)}</p>
-      <small>可信度：${escapeHtml(item.confidence)}。重要填报前请以招生章程和学校官方发布为准。</small>
+      <span>${escapeHtml(item.status || item.confidence || "-")}</span>
+      <h3>${escapeHtml(item.title || "资料来源")}</h3>
+      <p>${escapeHtml(item.description || "")}</p>
+      <small>重要填报前请以招生章程和学校官方发布为准。</small>
     </article>
   `).join("");
-  markLinearReveal(node, ".source-card");
-  typesetMath(node);
 }
 
 function riskTone(item) {
@@ -1239,57 +1323,40 @@ function segmentTone(label) {
 function renderSegmentPrediction() {
   const body = el("segmentBody");
   if (!body) return;
-  const shift = asNumber(state.summary?.rank_difficulty_shift, Math.round(state.difficultyDelta * 61));
-  const predictedRank = asNumber(state.summary?.predicted_user_rank, estimateRankForScore(state.score + shift));
+  const predictedRank = nullableHistoryValue(state.summary?.score_mapped_rank ?? state.summary?.user_rank);
   const projectionRows = Array.isArray(state.summary?.segment_projection) ? state.summary.segment_projection : [];
   const rows = projectionRows.length
     ? projectionRows.map((row) => ({
       score: asNumber(row.score),
       rank: asNumber(row.predicted_rank),
       sameBand: asNumber(row.same_band),
-      label: row.label || segmentBandLabel(asNumber(row.score), asNumber(row.predicted_rank)),
+      label: row.label || "待核验",
     })).filter((row) => row.score >= 0 && row.rank > 0)
-    : [25, 20, 15, 10, 5, 0, -5, -10, -15, -20, -25]
-      .map((offset) => state.score + offset)
-      .filter((score) => score >= 0 && score <= 750)
-      .map((score) => {
-        const rank = Math.max(1, Math.round(predictedRank * Math.exp((state.score - score) * 0.045)));
-        const sameBand = Math.max(18, Math.round(rank * 0.012));
-        return { score, rank, sameBand, label: segmentBandLabel(score, rank) };
-      });
+    : predictedRank === null ? [] : [{ score: state.score, rank: predictedRank, sameBand: null, label: "当前分" }];
   setText("segmentScore", state.score);
-  setText("segmentRank", formatInt(predictedRank));
-  setText("segmentShift", DISPLAY_DIFFICULTY_COEFFICIENT);
-  body.innerHTML = rows.map((row) => `
+  setText("segmentRank", predictedRank === null ? "待核验" : formatInt(predictedRank));
+  setText("segmentShift", "2026表");
+  body.innerHTML = rows.length ? rows.map((row) => `
     <tr>
       <td>${row.score}</td>
       <td>${formatInt(row.rank)}</td>
-      <td>${formatInt(row.sameBand)}</td>
+      <td>${row.sameBand === null ? "-" : formatInt(row.sameBand)}</td>
       <td><span class="status-chip ${segmentTone(row.label)}">${escapeHtml(row.label)}</span></td>
     </tr>
-  `).join("");
+  `).join("") : `<tr><td colspan="4">位次资料未提供</td></tr>`;
   renderRankTrendMini();
 }
 
-function stableHash(text) {
-  return [...String(text || "")].reduce((sum, char) => (sum * 31 + char.charCodeAt(0)) % 9973, 17);
-}
-
 function logoHtml(asset, school) {
+  const cached = state.logoCache[logoKey(school)];
+  if (!asset?.logo_url && cached?.logo_url) asset = cached;
   const clean = String(asset?.label || school || "校").replace(/[^\u4e00-\u9fffA-Za-z0-9]/g, "");
   const label = escapeHtml(clean.slice(0, 2) || "校徽");
   const title = escapeHtml(asset?.message || "图像待核验");
-  if (asset?.status === "ready" && asset.logo_url) {
-    return `<div class="school-logo" data-label="${label}" title="${title}"><img src="${escapeHtml(asset.logo_url)}" alt="${escapeHtml(school)}校徽" onerror="this.parentElement.classList.add('logo-failed');this.remove()" /></div>`;
+  if (asset?.logo_url) {
+    return `<div class="school-logo" data-school="${escapeHtml(school)}" data-label="${label}" title="${title}"><img src="${escapeHtml(asset.logo_url)}" alt="${escapeHtml(school)}校徽" onerror="this.parentElement.classList.add('logo-failed');this.remove()" /></div>`;
   }
-  return `<div class="school-logo logo-placeholder" data-label="${label}" title="${title}">${label}</div>`;
-}
-
-function markLinearReveal(root, selector) {
-  if (!root) return;
-  root.querySelectorAll(selector).forEach((node, index) => {
-    node.style.setProperty("--motion-index", index);
-  });
+  return `<div class="school-logo logo-placeholder" data-school="${escapeHtml(school)}" data-label="${label}" title="${title}">${label}</div>`;
 }
 
 function setCollegesChatQuestionOpen(details, open) {
@@ -1322,43 +1389,22 @@ function animateCollegesChatQuestion(details, shouldOpen) {
   details.classList.add("is-animating");
   answerList.getAnimations?.().forEach((animation) => animation.cancel());
 
-  let animation;
+  // 先写入起始状态，下一帧再测量并启动动画：避免同一帧内读写布局互相打断。
+  const startHeight = shouldOpen ? "0px" : `${answerList.scrollHeight}px`;
+  answerList.style.height = startHeight;
+  answerList.style.opacity = shouldOpen ? "0" : "1";
+  answerList.style.transform = shouldOpen ? "translate3d(0, -6px, 0)" : "translate3d(0, 0, 0)";
   if (shouldOpen) {
     details.open = true;
     setCollegesChatQuestionOpen(details, true);
-    answerList.style.height = "0px";
-    answerList.style.opacity = "0";
-    answerList.style.transform = "translate3d(0, -8px, 0) scale(.992)";
-    void answerList.offsetHeight;
-    const targetHeight = `${answerList.scrollHeight}px`;
-    animation = answerList.animate([
-      { height: "0px", opacity: 0, transform: "translate3d(0, -8px, 0) scale(.992)" },
-      { height: targetHeight, opacity: 1, transform: "translate3d(0, 0, 0) scale(1)" },
-    ], {
-      duration: 430,
-      easing: "cubic-bezier(.19, 1, .22, 1)",
-      fill: "both",
-    });
   } else {
     setCollegesChatQuestionOpen(details, false);
-    const startHeight = `${answerList.scrollHeight}px`;
-    answerList.style.height = startHeight;
-    answerList.style.opacity = "1";
-    answerList.style.transform = "translate3d(0, 0, 0) scale(1)";
-    void answerList.offsetHeight;
-    animation = answerList.animate([
-      { height: startHeight, opacity: 1, transform: "translate3d(0, 0, 0) scale(1)" },
-      { height: "0px", opacity: 0, transform: "translate3d(0, -6px, 0) scale(.996)" },
-    ], {
-      duration: 300,
-      easing: "cubic-bezier(.36, 0, .66, -0.56)",
-      fill: "both",
-    });
   }
 
+  let animation = null;
   const finish = () => {
     if (details.dataset.qaMotionToken !== token) return;
-    animation.cancel();
+    animation?.cancel();
     delete details.dataset.qaMotionToken;
     delete details.dataset.motionState;
     details.classList.remove("is-animating");
@@ -1369,8 +1415,20 @@ function animateCollegesChatQuestion(details, shouldOpen) {
     answerList.style.transform = "";
   };
 
-  animation.finished.then(finish).catch(() => {});
-  window.setTimeout(finish, 620);
+  requestAnimationFrame(() => {
+    if (details.dataset.qaMotionToken !== token) return;
+    const endHeight = shouldOpen ? `${answerList.scrollHeight}px` : "0px";
+    animation = answerList.animate([
+      { height: startHeight, opacity: shouldOpen ? 0 : 1, transform: shouldOpen ? "translate3d(0, -6px, 0)" : "translate3d(0, 0, 0)" },
+      { height: endHeight, opacity: shouldOpen ? 1 : 0, transform: shouldOpen ? "translate3d(0, 0, 0)" : "translate3d(0, -4px, 0)" },
+    ], {
+      duration: shouldOpen ? 220 : 180,
+      easing: "cubic-bezier(.22, 1, .36, 1)",
+      fill: "both",
+    });
+    animation.finished.then(finish).catch(() => {});
+  });
+  window.setTimeout(finish, 600);
 }
 
 function handleCollegesChatQuestionClick(event) {
@@ -1382,92 +1440,26 @@ function handleCollegesChatQuestionClick(event) {
   animateCollegesChatQuestion(details, shouldOpen);
 }
 
-function meterColor(cls) {
-  return cls === "good" ? "#16865a" : cls === "warn" ? "#c96b12" : "#1558b0";
-}
-
-function renderMetricPanel(container, rows, options) {
-  if (!container) return;
-  const existing = [...container.children];
-  const canReuse = existing.length === rows.length;
-  if (!canReuse) {
-    container.innerHTML = rows.map((_, index) => `
-      <div class="${options.rowClass}" style="--motion-index:${index}">
-        <span></span>
-        <strong class="${options.valueClass}"></strong>
-        <div class="meter"><i></i></div>
-        <b class="status-chip"></b>
-      </div>
-    `).join("");
-  }
-  const next = {};
-  [...container.children].forEach((row, index) => {
-    const item = rows[index];
-    const label = item[0];
-    const value = item[1];
-    const [status, cls] = options.status(item);
-    const percent = `${Math.round(value * 100)}%`;
-    next[label] = percent;
-    row.dataset.metric = label;
-    row.querySelector("span").textContent = label;
-    row.querySelector(`.${options.valueClass}`).textContent = options.format(value);
-    const chip = row.querySelector(".status-chip");
-    chip.className = `status-chip ${cls}`;
-    chip.textContent = status;
-    const bar = row.querySelector(".meter i");
-    bar.style.setProperty("--bar", meterColor(cls));
-    if (!canReuse) {
-      bar.style.transition = "none";
-      bar.style.width = percent;
-    } else {
-      bar.style.transition = "width 680ms cubic-bezier(.16, 1, .3, 1), background-color 320ms cubic-bezier(.16, 1, .3, 1)";
-      bar.style.width = percent;
-    }
-  });
-  container.dataset.meterValues = JSON.stringify(next);
-}
-
 function renderPrecisionPanels() {
-  const behavior = el("behaviorPanel");
   const diagnostic = el("diagnosticPanel");
-  if (!behavior || !diagnostic) return;
-  const item = state.selected || state.list[0] || {};
-  const hash = stableHash(`${item.unit_id || ""}${item.school || ""}${item.major || ""}`);
-  const coverage = Math.min(0.995, 0.72 + coverageScore(item) * 0.034 + (hash % 7) / 1000);
-  const tierPreference = Math.min(0.96, Math.max(0.18, 0.30 + asNumber(item.school_guide_score, 0) * 2.4 + ((hash % 23) - 8) / 100));
-  const regionPreference = Math.min(0.94, Math.max(0.12, 0.44 + asNumber(item.behavior_delta, 0) * 10 + ((hash % 31) - 15) / 120));
-  const majorHotness = Math.min(0.97, Math.max(0.22, 0.52 + asNumber(item.confidence_score, 0.7) * 0.28 + ((hash % 19) - 8) / 100));
-  const safeRatio = asNumber(state.summary?.risk_distribution?.["保"], asNumber(state.summary?.risk_distribution?.["淇?"], 22)) / Math.max(1, asNumber(state.summary?.returned, 96));
-  const safeEnough = Math.min(0.95, Math.max(0.36, 0.58 + safeRatio + (String(item.risk_level || "").includes("保") ? 0.08 : 0)));
-  behavior.closest("section")?.querySelector("h2") && (behavior.closest("section").querySelector("h2").textContent = `行为调整建议 · ${String(item.school || "当前院校").slice(0, 8)}`);
-  diagnostic.closest("section")?.querySelector("h2") && (diagnostic.closest("section").querySelector("h2").textContent = `模型诊断 · ${String(item.major || "当前专业").slice(0, 8)}`);
+  if (!diagnostic) return;
+
+  const report = state.modelReport;
+  const metrics = report?.time_out_2026_metrics_without_future_plan;
+  if (!metrics) {
+    diagnostic.innerHTML = `<p>模型报告未提供。</p>`;
+    return;
+  }
   const rows = [
-    ["院校层次偏好", tierPreference],
-    ["地域偏好", regionPreference],
-    ["专业热度偏好", majorHotness],
-    ["保底充足度", safeEnough],
-  ];
-  renderMetricPanel(behavior, rows, {
-    rowClass: "precision-row",
-    valueClass: "precision-value",
-    format: (value) => value.toFixed(2),
-    status: ([, value]) => precisionStatus(value),
-  });
-  const missing = Math.max(0.005, 1 - coverage);
-  const stability = Math.min(0.988, 0.87 + asNumber(item.confidence_score, 0.72) * 0.11 + (hash % 5) / 1000);
-  const bias = Math.max(0.012, Math.min(0.095, Math.abs(asNumber(item.risk_gap_percent, 0.038)) + (hash % 9) / 1000));
-  const diagRows = [
-    ["数据覆盖率", coverage, true],
-    ["特征缺失率", missing, false],
-    ["模型稳定性", stability, true],
-    ["预测偏差率", bias, false],
-  ];
-  renderMetricPanel(diagnostic, diagRows, {
-    rowClass: "diagnostic-row",
-    valueClass: "diagnostic-value",
-    format: (value) => `${(value * 100).toFixed(1)}%`,
-    status: ([, value, highGood]) => precisionStatus(value, highGood),
-  });
+    ["回测样本", metrics.rows, "条"],
+    ["平均绝对位次误差", metrics.mae_rank, "名"],
+    ["位次误差中位数", metrics.median_ae_rank, "名"],
+    ["误差在10%内", metrics.within_10pct, "%"],
+  ].filter(([, value]) => value !== null && value !== undefined && Number.isFinite(Number(value)));
+  diagnostic.innerHTML = rows.map(([label, value, unit]) => {
+    const formatted = unit === "%" ? `${(Number(value) * 100).toFixed(1)}%` : `${formatInt(value)}${unit}`;
+    return `<div class="diagnostic-row" style="grid-template-columns:minmax(0,1fr) auto"><span>${escapeHtml(label)}</span><strong class="diagnostic-value">${escapeHtml(formatted)}</strong></div>`;
+  }).join("") || `<p>模型报告未提供。</p>`;
 }
 
 function renderLifeGrid() {
@@ -1477,16 +1469,16 @@ function renderLifeGrid() {
   node.innerHTML = rows.map((item) => `
     <article class="life-card dense-life-card" data-unit="${escapeHtml(item.unit_id)}">
       <div class="life-card-head">
-        ${logoHtml(item.logo_asset || state.logoCache[item.school], item.school)}
+        ${logoHtml(item.logo_asset || state.logoCache[logoKey(item.school)], item.school)}
         <div>
-          <span>${escapeHtml(item.school_ownership_label || "待核验")} · ${escapeHtml(item.school_tier_label || "普通本科")}</span>
+          <span>${escapeHtml(schoolOwnership(item))} · ${escapeHtml(textOr(item.school_tier_label, "层次待核验"))}</span>
           <h3>${escapeHtml(item.school)}</h3>
         </div>
       </div>
       <p><strong>宿舍</strong>：${escapeHtml(dormText(item))}</p>
       <p><strong>食堂</strong>：${escapeHtml(canteenText(item))}</p>
-      <p><strong>位置</strong>：${escapeHtml(textOr(guide(item).location || ladder(item).school_location, "位置待核验"))}</p>
-      <small>资料完整度 ${coverageScore(item)}/7 · 点击查看院校详情</small>
+      <p><strong>位置</strong>：${escapeHtml(schoolCity(item))}</p>
+      <small>可用资料项 ${coverageScore(item)}/6 · 点击查看院校详情</small>
     </article>
   `).join("");
 }
@@ -1495,46 +1487,40 @@ function renderLeftAnalytics() {
   const rankBars = el("leftRankBars");
   const structureBars = el("leftBandBars");
   if (!rankBars || !structureBars) return;
-  const mapped = asNumber(state.summary?.user_rank, 0);
-  const predicted = asNumber(state.summary?.predicted_user_rank, mapped);
-  const delta = mapped && predicted ? predicted - mapped : 0;
-  setText("leftRankDelta", delta ? `${delta > 0 ? "+" : ""}${formatInt(delta)}` : "0");
-  const avgRank = Math.round(state.list.reduce((sum, item) => sum + asNumber(item.rank_mid || item.predicted_rank_mid, predicted), 0) / Math.max(1, state.list.length));
+  const mapped = validCount(state.summary?.score_mapped_rank ?? state.summary?.user_rank);
+  const predicted = validCount(state.summary?.predicted_user_rank ?? state.summary?.user_rank);
+  const ranks = state.list.map(recommendationRankValue).filter((rank) => rank < 999999999);
+  const avgRank = ranks.length ? Math.round(ranks.reduce((sum, rank) => sum + rank, 0) / ranks.length) : null;
+  const delta = mapped !== null && predicted !== null ? predicted - mapped : null;
+  setText("leftRankDelta", delta === null ? "待核验" : delta ? `${delta > 0 ? "+" : ""}${formatInt(delta)}` : "一致");
   const rankRows = [
-    ["2025映射", mapped],
-    ["当前位次", predicted],
+    ["当前分数映射", mapped],
+    ["系统位次结果", predicted],
     ["候选均值", avgRank],
   ];
-  const maxRank = Math.max(...rankRows.map((row) => row[1]), 1);
+  const maxRank = Math.max(...rankRows.map(([, value]) => value || 0), 1);
   rankBars.innerHTML = rankRows.map(([label, value], index) => `
     <div class="left-bar-row">
       <span>${label}</span>
-      <div class="left-bar"><i style="--value:${Math.max(12, Math.round((value / maxRank) * 100))}%;--bar:${index === 1 ? "#16865a" : "#1558b0"}"></i></div>
-      <b>${formatInt(value)}</b>
+      <div class="left-bar"><i style="--value:${value === null ? 0 : Math.round((value / maxRank) * 100)}%;--bar:${index === 1 ? "#16865a" : "#1558b0"}"></i></div>
+      <b>${value === null ? "待核验" : formatInt(value)}</b>
     </div>
   `).join("");
 
-  const total = Math.max(1, state.list.length);
-  const publicCount = state.list.filter((item) => String(item.school_ownership_label || "").includes("公办")).length;
-  const lowTuition = state.list.filter((item) => asNumber(item.tuition_2025, 999999) <= 18000).length;
-  const completeLife = state.list.filter((item) => coverageScore(item) >= 6).length;
-  const verifiedLogo = state.list.filter((item) => (item.logo_asset || state.logoCache[item.school])?.status === "ready").length;
-  const reviewReady = state.list.filter((item) => coverageScore(item) >= 4).length;
-  const structureRows = [
-    ["公办占比", publicCount, "#1558b0"],
-    ["低学费", lowTuition, "#16865a"],
-    ["生活完整", completeLife, "#16865a"],
-    ["图像确认", verifiedLogo, "#1558b0"],
-    ["评价可读", reviewReady, "#c96b12"],
-  ];
-  setText("leftBandTotal", `${Math.round((completeLife / total) * 100)}%`);
-  structureBars.innerHTML = structureRows.map(([label, count, color]) => `
+  const structureRows = coverageStats(state.resources?.coverage);
+  const basicCoverage = structureRows.find(([label]) => label === "院校基础资料");
+  setText("leftBandTotal", basicCoverage?.[2] > 0 ? `${((basicCoverage[1] / basicCoverage[2]) * 100).toFixed(1)}%` : "待提供");
+  structureBars.innerHTML = structureRows.map(([label, count, total], index) => {
+    const percent = total > 0 ? Math.min(100, (count / total) * 100) : 0;
+    const color = index < 3 ? "#1558b0" : "#16865a";
+    return `
     <div class="left-bar-row">
       <span>${label}</span>
-      <div class="left-bar"><i style="--value:${Math.max(5, Math.round((count / total) * 100))}%;--bar:${color}"></i></div>
-      <b>${Math.round((count / total) * 100)}%</b>
+      <div class="left-bar"><i style="--value:${percent.toFixed(1)}%;--bar:${color}"></i></div>
+      <b>${coverageCountText(count, total)}</b>
     </div>
-  `).join("");
+  `;
+  }).join("") || `<div class="left-bar-row"><span>覆盖统计</span><b>未提供</b></div>`;
 }
 
 function renderRiskChart() {
@@ -1609,38 +1595,25 @@ function renderPager(totalRows) {
   pager.innerHTML = "";
 }
 
-function clampProbabilityByRisk(value, risk) {
-  const caps = {
-    强冲: [0.04, 0.24],
-    冲: [0.18, 0.48],
-    稳: [0.49, 0.72],
-    保: [0.73, 0.88],
-    兜底: [0.86, 0.96],
-  };
-  const [low, high] = caps[risk] || [0.18, 0.70];
-  return Math.max(low, Math.min(high, value));
+function admissionProbability(item) {
+  const raw = item?.admission_probability;
+  if (raw === null || raw === undefined || (typeof raw === "string" && raw.trim() === "")) return null;
+  if (typeof raw !== "number" && typeof raw !== "string") return null;
+  const probability = Number(raw);
+  return Number.isFinite(probability) && probability >= 0 && probability <= 1 ? probability : null;
 }
 
-function admissionProbability(item) {
-  const risk = item?.risk_level || "";
-  const explicit = Number(item?.admission_probability);
-  if (Number.isFinite(explicit) && explicit > 0) {
-    return clampProbabilityByRisk(explicit, risk);
-  }
-  const userRank = asNumber(state.summary?.predicted_user_rank, state.summary?.user_rank || 0);
-  const target = asNumber(item?.predicted_rank || item?.rank_mid || item?.rank_2025, 0);
-  const high = asNumber(item?.rank_high || item?.predicted_rank_high || target, target);
-  const low = asNumber(item?.rank_low || item?.predicted_rank_low || target, target);
-  if (!userRank || !target) return clampProbabilityByRisk(asNumber(item?.confidence_score, 0.5), risk);
-  const band = Math.max(Math.abs(high - low), target * 0.055, 1800);
-  const normalized = (high - userRank) / band;
-  const logistic = 1 / (1 + Math.exp(-1.15 * normalized));
-  return clampProbabilityByRisk(logistic, risk);
+function compareProbabilityDesc(a, b) {
+  const probabilityA = admissionProbability(a);
+  const probabilityB = admissionProbability(b);
+  if (probabilityA === null) return probabilityB === null ? 0 : 1;
+  if (probabilityB === null) return -1;
+  return probabilityB - probabilityA;
 }
 
 function rankGapText(item) {
   const userRank = asNumber(state.summary?.predicted_user_rank, state.summary?.user_rank || 0);
-  const target = asNumber(item?.predicted_rank || item?.rank_mid || item?.rank_2025, 0);
+  const target = asNumber(item?.predicted_rank || item?.rank_mid, 0);
   if (!userRank || !target) return "位次待核验";
   const gap = target - userRank;
   if (Math.abs(gap) < 1200) return "与你基本贴线";
@@ -1663,7 +1636,7 @@ function selectedRowsByRisk() {
     if (riskDiff) return riskDiff;
     const rankDiff = recommendationRankValue(a) - recommendationRankValue(b);
     if (rankDiff) return rankDiff;
-    return admissionProbability(b) - admissionProbability(a);
+    return compareProbabilityDesc(a, b);
   });
 }
 
@@ -1672,7 +1645,7 @@ function mobileOverviewPriorityRows() {
   const compare = (a, b) => {
     const coverageDiff = coverageScore(b) - coverageScore(a);
     if (coverageDiff) return coverageDiff;
-    const probabilityDiff = admissionProbability(b) - admissionProbability(a);
+    const probabilityDiff = compareProbabilityDesc(a, b);
     if (Math.abs(probabilityDiff) > 0.0001) return probabilityDiff;
     const rankDiff = recommendationRankValue(a) - recommendationRankValue(b);
     if (rankDiff) return rankDiff;
@@ -1705,12 +1678,17 @@ function mobileOverviewPriorityRows() {
 
 function renderResources() {
   const resources = state.resources || {};
+  const coverage = resources.coverage || {};
   const ready = asNumber(resources.logo_ready_count, 0);
   const total = asNumber(resources.logo_total_count, 0);
   const cards = (resources.source_cards || []).filter((item) => !String(item.title || "").includes("校徽"));
-  setText("resourceFiles", formatInt(resources.total_files || resources.guizhou_files || 0));
-  setText("guideCount", formatInt(resources.school_guide_count || resources.school_ladder_count || 0));
-  setText("logoCoverage", total ? `${ready}/${total}` : "补全中");
+  setText("resourceFiles", formatCount(coverage.source_files ?? resources.total_files ?? resources.guizhou_files));
+  const schoolsWithBasic = validCount(coverage.schools_with_basic);
+  const schoolsTotal = validCount(coverage.schools_total);
+  setText("guideCount", schoolsWithBasic !== null && schoolsTotal !== null
+    ? coveragePercentText(schoolsWithBasic, schoolsTotal)
+    : formatCount(resources.school_guide_count ?? resources.school_ladder_count));
+  updateLogoCount();
   const stack = el("sourceStack");
   if (stack) {
     stack.innerHTML = cards.slice(0, 6).map((item) => `
@@ -1723,30 +1701,13 @@ function renderResources() {
   }
   const board = el("sourcesBoard");
   if (board) {
-    const rootIndexLoaded = resources.index_loaded ? "已读取完整目录索引" : "使用当前资料统计";
-    const auditCards = [
-      {
-        title: "资料覆盖总览",
-        status: rootIndexLoaded,
-        confidence: "高",
-        description: `${formatInt(resources.total_files || 0)} 个文件、${formatInt(resources.total_directories || 0)} 个目录、约 ${resources.total_gb || 0} GB；页面只展示用户可读来源类型与核验提示。`,
-      },
-      {
-        title: "公开来源边界",
-        status: "只取公开可访问内容",
-        confidence: "高",
-        description: "不抓登录、验证码、付费、受限或禁止抓取内容；学生评价不足时直接显示资料缺口。",
-      },
-    ];
-    board.innerHTML = algorithmBriefHtml() + [...cards, ...auditCards].map((item) => `
+    board.innerHTML = algorithmBriefHtml() + [...cards, ...resourceCoverageCards(coverage)].map((item) => `
       <article class="source-card">
+        <span>${escapeHtml(item.status || item.confidence || "-")}</span>
         <h3>${escapeHtml(item.title)}</h3>
-        <strong>${escapeHtml(item.status || item.confidence || "-")}</strong>
         <p>${escapeHtml(item.description || "")}</p>
       </article>
     `).join("");
-    markLinearReveal(board, ".source-card");
-    typesetMath(board);
   }
 }
 
@@ -1757,13 +1718,13 @@ function renderPriorityList() {
   node.innerHTML = rows.map((item, index) => {
     const rankText = item.rank_range || `${formatInt(item.rank_low || item.predicted_rank_low || item.predicted_rank || 0)}-${formatInt(item.rank_high || item.predicted_rank_high || item.predicted_rank || 0)}`;
     const scoreText = item.score_range || `${item.predicted_score_low || item.score_low || "-"}-${item.predicted_score_high || item.score_high || "-"}`;
-    const info = `${scoreText} / ${rankText} · ${rankGapText(item)} · 资料 ${coverageScore(item)}/7`;
+    const info = `${scoreText} / ${rankText} · ${rankGapText(item)}`;
     return `
-      <article class="priority-card priority-row priority-${riskTone(item)}" data-unit="${escapeHtml(item.unit_id)}" style="--motion-index:${index}">
+      <article class="priority-card priority-row priority-${riskTone(item)}" data-unit="${escapeHtml(item.unit_id)}">
         <strong class="priority-index">${index + 1}</strong>
-        ${logoHtml(item.logo_asset || state.logoCache[item.school], item.school)}
+        ${logoHtml(item.logo_asset || state.logoCache[logoKey(item.school)], item.school)}
         <div class="priority-main">
-          <h3><span class="pill ${riskTone(item)}">${escapeHtml(item.risk_level || "待判定")}</span>${escapeHtml(item.school)} · ${escapeHtml(item.major)}</h3>
+          <h3><span class="pill ${riskTone(item)}">${escapeHtml(item.risk_level || "待判定")}</span><span class="priority-name">${escapeHtml(item.school)} · ${escapeHtml(item.major)}</span></h3>
           <p title="${escapeHtml(`${dormText(item)}；${employmentText(item)}`)}">${escapeHtml(info)}</p>
         </div>
         <div class="priority-meta">
@@ -1774,16 +1735,26 @@ function renderPriorityList() {
       </article>
     `;
   }).join("");
+  markFirstPaint(node, "priority");
 }
 
 function profileCard(row) {
   const value = textOr(row?.value, "待核验");
-  const isUrl = /^https?:\/\//i.test(value);
+  const valueUrl = safeHttpUrl(value);
+  const source = textOr(row?.source || row?.source_type, "资料来源");
+  const metadata = [
+    row?.confidence ? `可信度${row.confidence}` : "",
+    row?.year ? `年份 ${row.year}` : "",
+    row?.retrieved_at ? `更新于 ${row.retrieved_at}` : "",
+    row?.license ? `许可 ${row.license}` : "",
+    row?.verify_hint || "建议复核",
+  ].filter(Boolean);
+  const sourceLink = httpLinkHtml(row?.source_url, "查看来源");
   return `
     <article class="info-card profile-info-card">
       <span>${escapeHtml(row?.title || "资料")}</span>
-      <strong>${isUrl ? `<a href="${escapeHtml(value)}" target="_blank" rel="noreferrer">${escapeHtml(value)}</a>` : escapeHtml(value)}</strong>
-      <small>${escapeHtml(row?.source_type || "资料来源")} · 可信度${escapeHtml(row?.confidence || "中")} · ${escapeHtml(row?.verify_hint || "建议复核")}</small>
+      <strong>${valueUrl ? httpLinkHtml(valueUrl) : escapeHtml(value)}</strong>
+      <small>${escapeHtml([source, ...metadata].join(" · "))}${sourceLink ? ` · ${sourceLink}` : ""}</small>
     </article>
   `;
 }
@@ -1839,14 +1810,10 @@ function collegesChatCards(chat) {
 
 function collegesChatPanel(chat) {
   if (!chat) return "";
-  const sourceLink = chat.source_url
-    ? `<a href="${escapeHtml(chat.source_url)}" target="_blank" rel="noreferrer">GitHub 原文</a>`
-    : "";
-  const pageLink = chat.page_url
-    ? `<a href="${escapeHtml(chat.page_url)}" target="_blank" rel="noreferrer">源站页面</a>`
-    : "";
-  const licenseLink = chat.license_url
-    ? `<a href="${escapeHtml(chat.license_url)}" target="_blank" rel="noreferrer">${escapeHtml(chat.license || "CC BY-NC-SA 4.0")}</a>`
+  const sourceLink = httpLinkHtml(chat.source_url, "GitHub 原文");
+  const pageLink = httpLinkHtml(chat.page_url, "源站页面");
+  const licenseLink = safeHttpUrl(chat.license_url)
+    ? httpLinkHtml(chat.license_url, chat.license || "CC BY-NC-SA 4.0")
     : escapeHtml(chat.license || "CC BY-NC-SA 4.0");
 
   if (chat.status === "loading" || !chat.available) {
@@ -1866,7 +1833,7 @@ function collegesChatPanel(chat) {
 
   const questions = (chat.questions || []).map((question, index) => {
     const answers = (question.answers || []).map((answer) => `
-      <p><b>${escapeHtml(answer.id || "匿名")}</b>：${escapeHtml(answer.text || "")}</p>
+      <p><b>${escapeHtml(answer.id || "匿名")}</b>：${escapeHtml(answer.text || "")}${answer.date ? ` <small>· ${escapeHtml(answer.date)}</small>` : ""}</p>
     `).join("");
     return `
       <details class="review-detail colleges-chat-question" ${index === 0 ? "open" : ""}>
@@ -1907,24 +1874,30 @@ function renderProfile() {
   const current = state.selected || {};
   const sections = profile.sections || {};
   const sourceRows = (profile.source_summary || []).map((source) => ({
-    title: source.type,
+    title: source.title || source.type || "来源汇总",
     value: `${source.confidence || "中"} · ${source.updated || "随资料更新"}`,
-    source_type: "来源汇总",
+    source: source.source || source.type || "来源汇总",
+    source_type: source.source_type || "来源汇总",
     confidence: source.confidence || "中",
-    verify_hint: "可回到资料说明页核验",
+    year: source.year,
+    retrieved_at: source.retrieved_at || source.updated,
+    source_url: source.source_url,
+    license: source.license,
+    verify_hint: source.verify_hint || "可回到资料说明页核验",
   })).filter((row) => !String(row.title).includes("校徽"));
   const decisionRows = [
     { title: "当前推荐风险", value: `${current.risk_level || "待判定"} · ${probabilityText(current)} · ${rankGapText(current)}`, source_type: "推荐模型", confidence: "中高", verify_hint: "随选择院校联动" },
-    { title: "24/25/26 志愿走势", value: `24 ${formatInt(current.score_2024)}分/${formatInt(current.rank_2024)}名；25 ${formatInt(current.score_2025)}分/${formatInt(current.rank_2025)}名；26 ${current.score_range || "-"} / ${formatInt(current.predicted_rank || current.rank_mid)}名`, source_type: "录取主库", confidence: "中高", verify_hint: "按2026预测位次排序" },
+    { title: "2024—2027位次与分数", value: historySummaryText(current), source_type: "录取历史与模型预测", confidence: "中", verify_hint: "历史值缺失时显示待核验；2027为模型预测" },
+    { title: "选科要求", value: textOr(current.subject_requirement, "待核验"), source_type: "招生计划", confidence: "中", verify_hint: "以当年招生章程为准" },
     { title: "宿舍摘要", value: dormText(current), source_type: "院校资料表", confidence: "中高", verify_hint: "建议复核校区" },
     { title: "食堂摘要", value: canteenText(current), source_type: "院校资料表", confidence: "中", verify_hint: "公开资料可能滞后" },
     { title: "就业保研", value: employmentText(current), source_type: "院校资料表", confidence: "中", verify_hint: "以就业质量报告为准" },
     { title: "转专业", value: textOr(guide(current).transfer_policy, "待核验"), source_type: "院校资料表", confidence: "中", verify_hint: "需复核当年政策" },
-    { title: "学费", value: tuitionText(current), source_type: "招生计划", confidence: "中高", verify_hint: "以招生章程为准" },
+    { title: "学费", value: tuitionText(current), source_type: "招生计划", confidence: "中", verify_hint: "以招生章程为准" },
   ];
   const seen = new Set();
   const uniqueRows = (rows) => rows.filter((row) => {
-    const key = `${row.title}-${row.value}`;
+    const key = `${row.title}-${row.value}-${row.source_url || ""}`;
     if (seen.has(key) || String(row.title || "").includes("校徽")) return false;
     seen.add(key);
     return true;
@@ -1934,14 +1907,14 @@ function renderProfile() {
       ${logoHtml(profile.asset, profile.school)}
       <div>
         <h2>${escapeHtml(profile.school)}</h2>
-        <p>${escapeHtml(profile.headline?.city || "城市待核验")} · ${escapeHtml(profile.headline?.ownership || "性质待核验")} · ${escapeHtml(profile.headline?.tier || "层次待核验")}</p>
+        <p>${escapeHtml(textOr(current.city || profile.headline?.city, "城市待核验"))} · ${escapeHtml(textOr(current.ownership || profile.headline?.ownership, "性质待核验"))} · ${escapeHtml(profile.headline?.tier || "层次待核验")}</p>
       </div>
     </div>
     <div class="profile-kpis dense">
       <div><span>候选专业</span><strong>${profile.headline?.major_count ?? "-"}</strong></div>
-      <div><span>2025最低位次</span><strong>${formatInt(profile.headline?.min_rank_2025)}</strong></div>
+      <div><span>2026最低位次</span><strong>${formatInt(profile.headline?.min_rank_2026)}</strong></div>
       <div><span>学费范围</span><strong>${escapeHtml(profile.headline?.tuition_range || "待核验")}</strong></div>
-      <div><span>资料覆盖</span><strong>${profile.headline?.coverage ?? coverageScore(current) * 14}%</strong></div>
+      <div><span>资料覆盖</span><strong>${escapeHtml(profileCoverageText(profile))}</strong></div>
     </div>
   `;
   if (state.activeProfileTab === "reviews") {
@@ -1953,19 +1926,19 @@ function renderProfile() {
       </article>
     `);
     node.innerHTML = header + `<div class="review-grid profile-dense-grid review-board">${reviewCards.join("") || `<article class="info-card profile-info-card"><strong>暂无可追溯评价片段</strong><small>不编造学生评价，等待公开资料补充。</small></article>`}</div>`;
-    markLinearReveal(node, ".profile-hero, .profile-kpis > div, .profile-info-card, .review-card");
+    markEntering(node, `profile:${profile.school}:${state.activeProfileTab}`);
     return;
   }
   if (state.activeProfileTab === "official") {
     const officialRows = [
-      { title: "官网", value: profile.official?.official_site || "官网待补全", source_type: "公开官网", confidence: "中", verify_hint: "建议人工打开复核" },
+      { title: "官网", value: profile.official?.official_site || current.official_site || "官网待补全", source_type: "公开官网", confidence: "中", verify_hint: "建议人工打开复核" },
       { title: "招生网", value: profile.official?.admission_site || "招生网待补全", source_type: "本科招生网", confidence: "中", verify_hint: "招生政策以该来源为准" },
       { title: "招生电话", value: profile.official?.admission_phone || "待核验", source_type: "院校资料表", confidence: "中", verify_hint: "重要信息建议电话复核" },
       { title: "公开邮箱", value: profile.official?.email || "待核验", source_type: profile.official?.public_source_type || "公开资料", confidence: "中", verify_hint: "缺失时显示待核验" },
       ...sourceRows,
     ];
     node.innerHTML = header + `<div class="info-grid profile-dense-grid">${uniqueRows(officialRows).map(profileCard).join("")}</div>`;
-    markLinearReveal(node, ".profile-hero, .profile-kpis > div, .profile-info-card, .review-card");
+    markEntering(node, `profile:${profile.school}:${state.activeProfileTab}`);
     return;
   }
   const tabMap = {
@@ -1979,7 +1952,7 @@ function renderProfile() {
   const collegesChatHtml = state.activeProfileTab === "life" ? collegesChatPanel(state.selectedCollegesChat) : "";
   node.innerHTML = header + collegesChatHtml + `<div class="profile-life-board">${rows.map(profileCard).join("") || `<article class="info-card profile-info-card"><strong>暂无结构化资料</strong><small>不把不确定内容包装成结论。</small></article>`}</div>`;
   hydrateCollegesChatQuestions(node);
-  markLinearReveal(node, ".profile-hero, .profile-kpis > div, .profile-info-card, .review-card, .colleges-chat-section");
+  markEntering(node, `profile:${profile.school}:${state.activeProfileTab}`);
 }
 
 function renderDetail() {
@@ -1998,10 +1971,10 @@ function renderDetail() {
   }
   node.innerHTML = `
     <div class="detail-hero">
-      ${logoHtml(profile?.asset || item.logo_asset || state.logoCache[item.school], item.school)}
+      ${logoHtml(profile?.asset || item.logo_asset || state.logoCache[logoKey(item.school)], item.school)}
       <div>
         <h2>${escapeHtml(item.school)}</h2>
-        <p>${escapeHtml(item.major)} · ${escapeHtml(item.school_ownership_label || "待核验")} · ${escapeHtml(item.school_tier_label || "普通本科")}</p>
+        <p>${escapeHtml(item.major)} · ${escapeHtml(schoolOwnership(item))} · ${escapeHtml(textOr(item.school_tier_label, "层次待核验"))}</p>
       </div>
     </div>
     <div class="detail-dismiss detail-dismiss-top">
@@ -2014,12 +1987,17 @@ function renderDetail() {
       <div><span>录取概率</span><strong>${probabilityText(item)}</strong></div>
       <div><span>模型置信</span><strong>${formatPercent(item.confidence_score)}</strong></div>
       <div><span>学费</span><strong>${escapeHtml(tuitionText(item))}</strong></div>
-      <div><span>资料完整度</span><strong>${profile?.headline?.coverage ?? coverageScore(item) * 14}%</strong></div>
+      <div><span>资料覆盖</span><strong>${escapeHtml(profileCoverageText(profile))}</strong></div>
     </div>
     <section class="detail-section">
-      <h3>24/25/26 志愿数据</h3>
+      <h3>2024—2027录取数据与预测</h3>
       ${yearTrendHtml(item)}
       <p class="rank-gap-line">${escapeHtml(rankGapText(item))}</p>
+    </section>
+    <section class="detail-section">
+      <h3>选科与官网</h3>
+      <p>选科要求：${escapeHtml(textOr(item.subject_requirement, "待核验"))}</p>
+      <p>学校官网：${officialSiteHtml(item.official_site)}</p>
     </section>
     <section class="detail-section">
       <h3>为什么推荐</h3>
@@ -2027,6 +2005,7 @@ function renderDetail() {
     </section>
     <section class="detail-section">
       <h3>吃住环境</h3>
+      <p>城市：${escapeHtml(schoolCity(item))}</p>
       <p>宿舍：${escapeHtml(dormText(item))}</p>
       <p>食堂：${escapeHtml(canteenText(item))}</p>
     </section>
@@ -2041,41 +2020,49 @@ function renderDetail() {
       <p>${escapeHtml(state.selectedCollegesChat?.available ? `CollegesChat：${state.selectedCollegesChat.question_count} 个生活质量问题、${state.selectedCollegesChat.answer_count} 条原始回答。` : state.selectedCollegesChat?.message || "CollegesChat 问卷等待加载。")}</p>
     </section>
   `;
-  markLinearReveal(node, ".detail-hero, .summary-grid > div, .detail-section, .detail-dismiss");
+  // 只有换院校时才整块入场；同一院校的二次数据回填不再重放动画。
+  markEntering(node, `detail:${item.unit_id}`);
 }
 
 function renderRankTrendMini() {
+  if (el("entryLoader") && !el("entryLoader").hidden) return;
   const chart = getChart("rankTrendMini");
   if (!chart) return;
-  const userRank = asNumber(state.summary?.user_rank, estimateRankForScore(state.score));
-  const rank2024 = Math.round(userRank * (1.035 - state.difficultyDelta * 0.02));
-  const rank2025 = userRank;
-  const rank2026 = asNumber(state.summary?.predicted_user_rank, estimateRankForScore(state.score));
   const selected = state.selected || state.list[0] || {};
-  const schoolName = String(selected.school || "选中院校").slice(0, 10);
-  const schoolRank2024 = asNumber(selected.rank_2024, null);
-  const schoolRank2025 = asNumber(selected.rank_2025, null);
-  const schoolRank2026 = asNumber(selected.predicted_rank || selected.rank_mid, null);
-  const values = [rank2024, rank2025, rank2026, schoolRank2024, schoolRank2025, schoolRank2026].filter((value) => Number.isFinite(value) && value > 0);
-  const minValue = Math.max(1, Math.floor(Math.min(...values) * 0.92));
-  const maxValue = Math.ceil(Math.max(...values) * 1.08);
-  const gap = Number.isFinite(schoolRank2026) ? Math.round(schoolRank2026 - rank2026) : 0;
-  const headline = Number.isFinite(schoolRank2026)
-    ? gap >= 0 ? `2026：你领先 ${formatInt(gap)} 名` : `2026：你落后 ${formatInt(Math.abs(gap))} 名`
-    : "点击院校后显示对比走势";
+
+  const ranks = [2024, 2025, 2026, 2027].map((year) => {
+    const record = historyRecord(selected, year);
+    return record.rank ?? (year === 2027 ? nullableHistoryValue(selected.predicted_rank || selected.rank_mid) : null);
+  });
+  const availableRanks = ranks.filter((value) => value !== null && value > 0);
+  const applicantRank = nullableHistoryValue(state.summary?.predicted_user_rank ?? state.summary?.user_rank);
+  const predictedRank = ranks[3];
+  const gap = applicantRank !== null && predictedRank !== null ? Math.round(predictedRank - applicantRank) : null;
+  const headline = gap === null
+    ? availableRanks.length ? "院校录取位次历史" : "暂无可展示的位次历史"
+    : gap >= 0 ? `2027预测：你领先 ${formatInt(gap)} 名` : `2027预测：你落后 ${formatInt(Math.abs(gap))} 名`;
+  const rankAxis = availableRanks.length
+    ? { min: Math.max(1, Math.floor(Math.min(...availableRanks) * 0.92)), max: Math.ceil(Math.max(...availableRanks) * 1.08) }
+    : {};
+  const trendKey = JSON.stringify([selected.unit_id, ranks, applicantRank]);
+  if (chart.__trendKey === trendKey) return;
+  // 只有首帧允许动画；之后切换院校直接换数据，避免曲线反复重绘造成的闪动。
+  const firstPaint = !chart.__trendPainted;
+  chart.__trendPainted = true;
+  chart.__trendKey = trendKey;
   chart.setOption({
-    animation: true,
-    animationDuration: 620,
-    animationDurationUpdate: 360,
+    animation: firstPaint && !prefersReducedMotion(),
+    animationDuration: 240,
+    animationDurationUpdate: 0,
     animationEasing: "cubicOut",
     animationEasingUpdate: "cubicOut",
-    grid: { left: 64, right: 96, top: 76, bottom: 24 },
+    grid: { left: 62, right: 35, top: 94, bottom: 30 },
     title: {
       text: headline,
-      subtext: "位次越靠上越好",
+      subtext: "历史年份读取录取数据；预测年份读取模型结果",
       left: 10,
       top: 6,
-      textStyle: { color: gap >= 0 ? "#16865a" : "#c96b12", fontSize: 14, fontWeight: 900 },
+      textStyle: { color: gap !== null && gap >= 0 ? "#16865a" : "#c96b12", fontSize: 14, fontWeight: 900 },
       subtextStyle: { color: "#66758a", fontSize: 11, fontWeight: 800 },
     },
     tooltip: {
@@ -2085,13 +2072,13 @@ function renderRankTrendMini() {
       backgroundColor: "rgba(255,255,255,.98)",
       textStyle: { color: "#10213d", fontSize: 12 },
       formatter: (items) => items
-        .filter((entry) => Number.isFinite(Number(entry.value)))
+        .filter((entry) => entry.value !== null && entry.value !== undefined && Number.isFinite(Number(entry.value)))
         .map((entry) => `${entry.marker}${entry.seriesName}: ${formatInt(entry.value)}名`)
         .join("<br/>"),
     },
     legend: {
-      top: 38,
-      right: 14,
+      top: 61,
+      left: 12,
       itemWidth: 20,
       itemHeight: 8,
       textStyle: { color: "#52627a", fontSize: 12, fontWeight: 800 },
@@ -2099,7 +2086,7 @@ function renderRankTrendMini() {
     xAxis: {
       type: "category",
       boundaryGap: false,
-      data: ["2024", "2025", "2026预测"],
+      data: ["2024", "2025", "2026", "2027预测"],
       axisTick: { show: false },
       axisLine: { lineStyle: { color: "#d9e2ef" } },
       axisLabel: { color: "#52627a", fontSize: 12, fontWeight: 800 },
@@ -2107,75 +2094,26 @@ function renderRankTrendMini() {
     yAxis: {
       type: "value",
       inverse: true,
-      min: minValue,
-      max: maxValue,
+      ...rankAxis,
       splitNumber: 4,
       axisTick: { show: false },
       axisLine: { show: false },
       axisLabel: { color: "#66758a", fontSize: 12, formatter: (value) => formatInt(value) },
       splitLine: { lineStyle: { color: "rgba(129,151,178,.24)", type: "dashed" } },
     },
-    series: [
-      {
-        name: "我的位次",
-        type: "line",
-        smooth: 0.18,
-        data: [rank2024, rank2025, rank2026],
-        symbol: "circle",
-        symbolSize: 11,
-        lineStyle: { width: 3, color: "#1558b0", cap: "round" },
-        itemStyle: { color: "#fff", borderColor: "#1558b0", borderWidth: 3 },
-        label: {
-          show: true,
-          position: "right",
-          distance: 9,
-          offset: [0, -11],
-          color: "#1558b0",
-          fontWeight: 900,
-          fontSize: 11,
-          backgroundColor: "rgba(255,255,255,.92)",
-          borderColor: "rgba(21,88,176,.20)",
-          borderWidth: 1,
-          borderRadius: 6,
-          padding: [2, 5],
-          formatter: (params) => params.dataIndex === 2 ? `我 ${formatInt(params.value)}` : "",
-        },
-        labelLayout: { hideOverlap: true, moveOverlap: "shiftY" },
-        areaStyle: {
-          color: {
-            type: "linear",
-            x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [{ offset: 0, color: "rgba(21,88,176,.20)" }, { offset: 1, color: "rgba(21,88,176,.015)" }],
-          },
-        },
-      },
-      {
-        name: `${schoolName}线`,
-        type: "line",
-        smooth: 0.18,
-        data: [schoolRank2024, schoolRank2025, schoolRank2026],
-        symbol: "circle",
-        symbolSize: 11,
-        lineStyle: { width: 3, color: "#c96b12", cap: "round" },
-        itemStyle: { color: "#fff", borderColor: "#c96b12", borderWidth: 3 },
-        label: {
-          show: true,
-          position: "right",
-          distance: 9,
-          offset: [0, 11],
-          color: "#9a4d08",
-          fontWeight: 900,
-          fontSize: 11,
-          backgroundColor: "rgba(255,255,255,.92)",
-          borderColor: "rgba(201,107,18,.20)",
-          borderWidth: 1,
-          borderRadius: 6,
-          padding: [2, 5],
-          formatter: (params) => params.dataIndex === 2 ? `校 ${formatInt(params.value)}` : "",
-        },
-        labelLayout: { hideOverlap: true, moveOverlap: "shiftY" },
-      },
-    ],
+    series: [{
+      id: "rank-trend",
+      name: `${String(selected.school || "选中院校").slice(0, 10)}最低录取位次`,
+      type: "line",
+      smooth: 0.18,
+      connectNulls: false,
+      data: ranks,
+      symbol: "circle",
+      symbolSize: 11,
+      lineStyle: { width: 3, color: "#c96b12", cap: "round" },
+      itemStyle: { color: "#fff", borderColor: "#c96b12", borderWidth: 3 },
+      label: { show: true, position: "top", color: "#9a4d08", fontWeight: 900, fontSize: 10, formatter: ({ value }) => value == null ? "" : formatInt(value) },
+    }],
   });
 }
 
@@ -2188,26 +2126,29 @@ function renderTable() {
   } else {
     body.innerHTML = rows.map((item) => {
       const selected = state.selected?.unit_id === item.unit_id ? " selected-row" : "";
-      const planDelta = asNumber(item.plan_2025) - asNumber(item.plan_2024);
+      const plan2025 = historyRecord(item, 2025).plan;
+      const plan2026 = historyRecord(item, 2026).plan;
+      const planDelta = plan2025 !== null && plan2026 !== null ? plan2026 - plan2025 : null;
+      const planDeltaText = planDelta === null ? "计划变化待核验" : `${planDelta >= 0 ? "+" : ""}${planDelta} · 较2025`;
       return `
         <tr class="${selected} table-risk-${riskTone(item)}" data-unit="${escapeHtml(item.unit_id)}" style="--i:${asNumber(item.order, 0)}">
           <td class="metric order-cell"><strong>${item.order || "-"}</strong><small>推荐</small></td>
           <td><button class="replace-btn" data-replace-unit="${escapeHtml(item.unit_id)}" title="换一个同层级候选">更换</button></td>
-          <td>${logoHtml(item.logo_asset || state.logoCache[item.school], item.school)}</td>
+          <td>${logoHtml(item.logo_asset || state.logoCache[logoKey(item.school)], item.school)}</td>
           <td class="cell-title">
             <strong>${escapeHtml(item.school)}</strong>
             <span>${escapeHtml(item.major)}</span>
-            <small>${escapeHtml(textOr(guide(item).school_city || ladder(item).school_location || item.school_tier_label))} · ${escapeHtml(item.school_ownership_label || "待核验")}</small>
+            <small>${escapeHtml(schoolCity(item))} · ${escapeHtml(schoolOwnership(item))}</small>
           </td>
-          <td><span class="pill ${riskClass(item.risk_level)}">${escapeHtml(riskShort(item.risk_level))}</span><div class="muted-line">${probabilityText(item)} 录取</div></td>
+          <td><span class="pill ${riskClass(item.risk_level)}">${escapeHtml(riskShort(item.risk_level))}</span><div class="muted-line">${probabilityText(item)}${admissionProbability(item) === null ? "" : " 录取"}</div></td>
           <td>${yearTrendHtml(item)}<small class="rank-gap-inline">${escapeHtml(rankGapText(item))}</small></td>
-          <td class="metric"><strong>${formatInt(item.plan_2025)}人</strong><small>${planDelta >= 0 ? "+" : ""}${planDelta} · ${escapeHtml(tuitionText(item))}</small></td>
+          <td class="metric"><strong>${plan2026 === null ? "待核验" : `${formatInt(plan2026)}人`}</strong><small>${escapeHtml(planDeltaText)} · ${escapeHtml(tuitionText(item))}</small></td>
           <td>
             <div class="table-briefs">
               <span title="${escapeHtml(dormText(item))}">宿 ${escapeHtml(dormText(item))}</span>
               <span title="${escapeHtml(canteenText(item))}">食 ${escapeHtml(canteenText(item))}</span>
               <span title="${escapeHtml(employmentText(item))}">业 ${escapeHtml(textOr(guide(item).employment || guide(item).postgraduate_recommendation, "待核验"))}</span>
-              <b>资料 ${coverageScore(item)}/7</b>
+              <b>可用资料项 ${coverageScore(item)}/6</b>
             </div>
           </td>
           <td><button class="row-action" data-unit="${escapeHtml(item.unit_id)}">详情</button></td>
@@ -2215,6 +2156,7 @@ function renderTable() {
       `;
     }).join("");
   }
+  markFirstPaint(body, "table");
   setText("tableCount", `已展开推荐 ${rows.length} / 96 条`);
 }
 
@@ -2241,9 +2183,41 @@ function bindEvents() {
     event.preventDefault();
     enterDesktopAppFromScore();
   });
+  el("scoreInput")?.addEventListener("input", () => {
+    state.currentRank = null;
+    const rankInput = el("rankInput");
+    if (rankInput) rankInput.value = "";
+    setText("metricRankCurrentLabel", "当前分数映射位次");
+    setText("metricRankCurrentBasis", "按2026一分一段表");
+    setText("metricRankBasis", "按2026一分一段表");
+  });
+  el("rankInput")?.addEventListener("input", (event) => {
+    const raw = String(event.currentTarget.value ?? "").trim();
+    const rank = Number(raw);
+    if (!raw) {
+      state.currentRank = null;
+      setText("metricRankCurrentLabel", "当前分数映射位次");
+      setText("metricRankCurrentBasis", "按2026一分一段表");
+      setText("metricRankBasis", "按2026一分一段表");
+      return;
+    }
+    if (Number.isInteger(rank) && rank > 0) {
+      state.currentRank = rank;
+      setText("metricRankCurrentLabel", "手动输入位次");
+      setText("metricRankCurrent", formatInt(rank));
+      setText("metricRankCurrentBasis", "用户输入");
+      setText("metricRankBasis", "手动输入位次");
+      setText("metricRank", formatInt(rank));
+      return;
+    }
+    state.currentRank = null;
+    setText("metricRankCurrentLabel", "当前分数映射位次");
+    setText("metricRankCurrentBasis", "按2026一分一段表");
+    setText("metricRankBasis", "位次需为正整数");
+  });
   el("generateBtn")?.addEventListener("click", generateList);
   el("refreshBtn")?.addEventListener("click", generateList);
-  el("mobileRefreshBtn")?.addEventListener("click", () => generateList({ entryLoader: true }));
+  el("mobileRefreshBtn")?.addEventListener("click", () => generateList());
   el("mobileBottomNav")?.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-mobile-step]");
     if (!button) return;
@@ -2420,18 +2394,18 @@ function bindEvents() {
     renderProfile();
   });
   let resizeFrame = 0;
-  const resizeCharts = () => {
+  const scheduleLayoutSync = () => {
     cancelAnimationFrame(resizeFrame);
     resizeFrame = requestAnimationFrame(() => {
       updateNavIndicator();
-      Object.values(state.charts).forEach((chart) => chart?.resize());
+      resizeCharts();
     });
   };
   if (window.ResizeObserver) {
-    const observer = new ResizeObserver(resizeCharts);
+    const observer = new ResizeObserver(scheduleLayoutSync);
     document.querySelectorAll(".center-stage, .right-rail, .mini-chart, .donut-box").forEach((node) => observer.observe(node));
   } else {
-    window.addEventListener("resize", resizeCharts, { passive: true });
+    window.addEventListener("resize", scheduleLayoutSync, { passive: true });
   }
   updateNavIndicator();
 }
@@ -2447,6 +2421,7 @@ function startDesktopApp(options = {}) {
   if (!appUnlocked || appBooted) return;
   appBooted = true;
   loadResources();
+  loadModelReport();
   generateList(options);
   ensureECharts()
     .then(() => renderAll())
@@ -2457,28 +2432,20 @@ function setScoreValue(score) {
   const text = String(score ?? "").trim();
   if (!text) return null;
   const number = Number(text);
-  if (!Number.isFinite(number)) return null;
-  const clean = Math.max(0, Math.min(750, Math.round(number)));
+  if (!Number.isInteger(number) || number < 0 || number > 750) return null;
+  const clean = number;
   state.score = clean;
   if (el("scoreInput")) el("scoreInput").value = clean;
   if (el("entryScoreInput")) el("entryScoreInput").value = clean;
   return clean;
 }
 
-function setRankValue(rank) {
-  const text = String(rank ?? "").trim();
-  if (!text) return null;
-  const number = Number(text);
-  if (!Number.isFinite(number)) return null;
-  const clean = Math.max(1, Math.round(number));
-  state.currentRank = clean;
-  if (el("rankInput")) el("rankInput").value = clean;
-  if (el("entryRankInput")) el("entryRankInput").value = clean;
-  return clean;
-}
-
 function enterDesktopAppFromScore() {
   const input = el("entryScoreInput");
+  if (!input?.reportValidity()) {
+    input?.focus();
+    return;
+  }
   const score = setScoreValue(input?.value);
   if (score === null) {
     input?.reportValidity();
@@ -2490,10 +2457,8 @@ function enterDesktopAppFromScore() {
   appUnlocked = true;
   showEntryLoader();
   document.body.dataset.scoreGate = "closing";
-  window.setTimeout(() => {
-    document.body.dataset.scoreGate = "closed";
-    startDesktopApp({ entryLoader: true, loaderVisible: true });
-  }, 360);
+  document.body.dataset.scoreGate = "closed";
+  startDesktopApp({ entryLoader: true, loaderVisible: true });
 }
 
 function restoreEntryScore() {

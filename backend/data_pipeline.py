@@ -174,6 +174,9 @@ def extract_outcome_pdf(path: Path, year: int) -> tuple[list[AdmissionRow], dict
     table_count = 0
     with pdfplumber.open(path) as document:
         page_count = len(document.pages)
+        title = re.sub(r"\s+", "", document.pages[0].extract_text() or "")
+        if str(year) not in title or "物理" not in title or "本科批" not in title:
+            raise ValueError(f"投档表年份、科类或批次不符：{path}")
         for page_number, page in enumerate(document.pages, start=1):
             tables = page.extract_tables() or []
             table_count += len(tables)

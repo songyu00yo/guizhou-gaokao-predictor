@@ -16,7 +16,7 @@ CATALOG_FILENAME = "{year}_physics_catalog.pdf"
 SUBJECT_PATTERN = r"(?:不限|化学(?:\s*生物)?|生物(?:\s*化学)?|思想政治|政治|地理)"
 LANGUAGE_PATTERN = r"(?:不限|英语|俄语|日语|法语|德语|西班牙语|其他)"
 MAJOR_TAIL = re.compile(
-    rf"(?P<subject>{SUBJECT_PATTERN})\s+(?P<plan>\d{{1,4}})\s+(?P<language>{LANGUAGE_PATTERN})(?:\s+[2-9])?(?:\s+(?:\d{{3,6}}|免费|待定))?\s*$"
+    rf"(?P<subject>{SUBJECT_PATTERN})\s+(?P<plan>\d{{1,4}})\s+(?P<language>{LANGUAGE_PATTERN})(?:\s+[2-9])?(?:\s+(?P<tuition>\d{{3,6}}|免费|待定))?\s*$"
 )
 SCHOOL_LINE = re.compile(r"^(?P<code>\d{4})\s+(?P<name>.+?)\s+(?P<total>\d{1,5})$")
 MAJOR_START = re.compile(r"^(?P<code>[0-9A-Z]{3})\s+(?P<body>.+)$")
@@ -34,6 +34,7 @@ class CatalogPlan:
     language: str
     source_page: int
     source_column: str
+    tuition: str | None = None
 
 
 def _clean(value: Any) -> str:
@@ -85,6 +86,7 @@ def _parse_major_buffer(
         language=tail.group("language"),
         source_page=page_number,
         source_column=column,
+        tuition=tail.group("tuition"),
     )
 
 
@@ -115,6 +117,9 @@ def extract_catalog(path: Path, year: int) -> tuple[list[CatalogPlan], dict[str,
 
     with pdfplumber.open(path) as document:
         page_count = len(document.pages)
+        title = re.sub(r"\s+", "", "".join(page.extract_text() or "" for page in document.pages[:2]))
+        if str(year) not in title or "物理" not in title or "招生专业目录" not in title:
+            raise ValueError(f"招生目录年份或科类不符：{path}")
         for page_number, raw_page in enumerate(document.pages, start=1):
             page = raw_page.dedupe_chars(tolerance=1)
             halves = [

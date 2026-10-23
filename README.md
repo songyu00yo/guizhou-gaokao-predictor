@@ -23,7 +23,9 @@ API 每次返回 96 个推荐项。推荐结果包含预测位次区间、估算
 >
 > 项目只用于信息整理和概率分析，不能替代贵州省招生考试院、院校招生章程或人工核验。
 
-## 当前运行包
+## 仓库自带运行包
+
+以下数值描述仓库自带的运行包。本地公开数据重建流程见 [BACKEND_REBUILD.md](BACKEND_REBUILD.md)。重建会重新计算指标，并在 `var/runtime/` 中生成独立运行包。
 
 | 项目 | 当前值 |
 | --- | --- |
@@ -151,12 +153,13 @@ FastAPI 自动生成的接口文档可在 `/docs` 查看。
 
 数据解析代码中的首次投档来源指向贵州省招生考试院等公开页面。仓库不分发原始 PDF、处理中间 CSV、私人 Excel、冻结缓存和训练模型。
 
-因此，公开仓库可以审查数据清洗、匹配、回测和训练代码，但不能只靠一次 `git clone` 完整重建当前 `data/artifacts/`。要重新训练，需要先准备对应的原始数据和本地缓存。
+公开数据准备入口会下载投档表、一分一段表、招生目录及院校资料，并记录来源和校验值。首次运行需要联网，后续可以复用已校验的本地缓存。重建流程不再依赖私人冻结缓存；缺少旧算法快照时，会明确标记旧算法对比不可复现。
 
 训练依赖：
 
 ```bash
 python -m pip install -r requirements-ml.txt
+python -m backend.rebuild --train --activate
 ```
 
 相关代码：
@@ -185,6 +188,7 @@ python -m pip install -r requirements-ml.txt
 - `GZ_ADMIN_TOKEN`：管理员实时核查接口令牌。不配置时对应能力保持关闭。
 - `GZ_RUNTIME_CACHE_DIR`：运行缓存目录，默认使用 `var/cache`。
 - `GZ_PRIVATE_PROFILE_FILE`：私人院校画像 JSON。公开功能不依赖该文件。
+- `GZ_RUNTIME_DATA_DIR`：指定运行包目录。未设置时优先读取本地启用记录，最后使用仓库自带运行包。
 
 校徽不提交到 Git，只在运行时按需缓存。
 

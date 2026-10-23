@@ -1,8 +1,10 @@
 # 第三方声明
 
 - ECharts：Apache License 2.0，用于浏览器端图表渲染。
-- MathJax：Apache License 2.0，通过 jsDelivr 按需加载，用于公式排版。
-- CollegesChat：页面仅提供公开读取与来源署名；内容版权及使用条款归原站与内容作者所有。
+- CollegesChat 问卷：[原始数据仓库](https://github.com/CollegesChat/university-information)，CC BY-NC-SA 4.0。重建包保留来源版本、回答日期和许可说明，省略联系信息；再分发适用该内容的署名、非商业和相同方式共享要求，不能将数据改称 Apache License 2.0。
+- DaoSword 中国教育数据：[原始数据仓库](https://github.com/DaoSword/China-Education-Data)，CC BY 4.0。历史院校基础资料保留来源及年份，不能视为当年官方核验结果。
+- 教育部高校名单：来源为教育部公开附件。原页面未声明明确的开放许可，代码许可证不覆盖该附件。
+- 中国教育在线公开信息：作为部分院校缺失字段的补充来源，保留获取时间及来源链接。公开可访问不代表可任意再分发。
 - 院校校徽：不随仓库分发。运行时从白名单来源按需缓存，相关标识权利归对应院校。
 - 招生与投档数据：来源见项目文档和模型报告，代码许可证不覆盖数据本身。
 

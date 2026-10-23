@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import hashlib
+import copy
 import json
 import os
+import re
 from bisect import bisect_left
 from functools import lru_cache
 from pathlib import Path
@@ -33,8 +35,18 @@ class SegmentMapper:
         rows = payload.get("rows") or []
         if not rows:
             raise RuntimeError("一分一段运行时数据为空")
-        self.rows = rows
-        self.scores = [int(row["score"]) for row in rows]
+        self.rows = sorted(rows, key=lambda row: int(row["score"]))
+        self.scores = [int(row["score"]) for row in self.rows]
+        if len(set(self.scores)) != len(rows):
+            raise RuntimeError("一分一段数据包含重复分数")
+        previous_rank_low = None
+        for row in self.rows:
+            low, high = int(row["rank_low"]), int(row["rank_high"])
+            if not (0 <= int(row["score"]) <= 750 and 1 <= low <= high):
+                raise RuntimeError("一分一段数据范围错误")
+            if previous_rank_low is not None and high >= previous_rank_low:
+                raise RuntimeError("一分一段数据累计位次逆序或区间重叠")
+            previous_rank_low = low
         self.rank_rows = sorted(rows, key=lambda row: int(row["rank_mid"]))
         self.rank_mids = [int(row["rank_mid"]) for row in self.rank_rows]
 
@@ -79,6 +91,8 @@ class RuntimeStore:
         if prediction_payload.get("schema_version") != 2:
             raise RuntimeError("预测文件 schema 版本不受支持")
         self.payload = prediction_payload
+        supplement_listed = any(item["name"] == "supplement.json" for item in self.manifest.get("files", []))
+        self.supplement = json.loads((artifact_dir / "supplement.json").read_text(encoding="utf-8")) if supplement_listed else {}
         self.programs: list[dict[str, Any]] = prediction_payload["forecasts"]
         if len(self.programs) != int(prediction_payload.get("forecast_count") or 0):
             raise RuntimeError("预测文件记录数与清单不一致")
@@ -108,7 +122,13 @@ class RuntimeStore:
     @classmethod
     def from_environment(cls, app_dir: Path) -> "RuntimeStore":
         configured = os.environ.get("GZ_RUNTIME_DATA_DIR")
-        artifact_dir = Path(configured).expanduser().resolve() if configured else app_dir / "data" / "artifacts"
+        active = app_dir / "var" / "runtime" / "active.json"
+        if configured:
+            artifact_dir = Path(configured).expanduser().resolve()
+        elif active.exists():
+            artifact_dir = Path(json.loads(active.read_text(encoding="utf-8"))["artifact_dir"]).resolve()
+        else:
+            artifact_dir = app_dir / "data" / "artifacts"
         return cls(artifact_dir)
 
     def _probabilities(self, user_rank: int) -> np.ndarray:
@@ -161,7 +181,7 @@ class RuntimeStore:
         score_low = self.segment.rank_to_score(q90)
         score_high = self.segment.rank_to_score(q10)
         risk = str(RISK_LABELS[np.digitize(probability, [0.25, 0.50, 0.74, 0.89])])
-        return {
+        result = {
             "order": order,
             "unit_id": source["unit_id"],
             "school": source["school"],
@@ -194,6 +214,24 @@ class RuntimeStore:
             "explanation": f"2027 中位投档位次约 {q50}，80% 校准区间为 {q10}-{q90}。",
             "driving_factors": ["年度位次归一化", "院校与专业历史", "时间外残差校准"],
         }
+        # Alternates stay compact; selecting one loads its full detail.
+        if order is None:
+            return result
+        enrichment = self.supplement.get("programs", {}).get(source["unit_id"], {})
+        headline = self.supplement.get("schools", {}).get(source["school"], {}).get("headline", {})
+        public = self.supplement.get("schools", {}).get(source["school"], {})
+        if public:
+            result["has_life_data"] = bool(public.get("reviews"))
+        # Keep recommendations compact; complete history and provenance are returned by detail.
+        for key in ("tuition", "subject_requirement"):
+            if enrichment.get(key) is not None:
+                result[key] = enrichment[key]
+        for key in ("city", "ownership"):
+            if headline.get(key):
+                result[key] = headline[key]
+        if headline.get("tier"):
+            result["school_tier_label"] = headline["tier"]
+        return result
 
     @lru_cache(maxsize=256)
     def recommend(self, score: int, current_rank: int | None, preference: str) -> dict[str, Any]:
@@ -214,6 +252,10 @@ class RuntimeStore:
             distribution[item["risk_level"]] = distribution.get(item["risk_level"], 0) + 1
         model_metrics = self.report.get("time_out_2026_metrics_without_future_plan", {})
         calibration = self.report.get("crossfit_calibration", {})
+        segment_rows = [row for row in self.segment.rows if abs(int(row["score"]) - score) <= 25
+                        and (int(row["score"]) == score or int(row["score"]) % 5 == score % 5)]
+        if not segment_rows:
+            segment_rows = [min(self.segment.rows, key=lambda row: abs(int(row["score"]) - score))]
         return {
             "list": selected_items,
             "alternates": alternate_items,
@@ -221,6 +263,11 @@ class RuntimeStore:
                 "input_score": score,
                 "input_rank": current_rank,
                 "user_rank": user_rank,
+                "score_mapped_rank": self.segment.score_to_rank(score),
+                "segment_projection": [{"score": row["score"], "predicted_rank": row["rank_high"],
+                                         "same_band": int(row["rank_high"]) - int(row["rank_low"]) + 1,
+                                         "label": "当前分" if row["score"] == score else "官方分段",
+                                         "source_year": 2026} for row in segment_rows],
                 "predicted_user_rank": user_rank,
                 "risk_preference": preference,
                 "total_candidates": len(self.programs),
@@ -232,6 +279,8 @@ class RuntimeStore:
                     "route": self.payload["model_route"],
                     "status": self.payload["status"],
                     "time_out_rows": model_metrics.get("rows"),
+                    "time_out_mae_rank": model_metrics.get("mae_rank"),
+                    "time_out_median_ae_rank": model_metrics.get("median_ae_rank"),
                     "time_out_within_10pct": model_metrics.get("within_10pct"),
                     "crossfit_q10_q90_coverage": calibration.get("q10_q90_coverage"),
                     "crossfit_q05_q95_coverage": calibration.get("q05_q95_coverage"),
@@ -248,24 +297,40 @@ class RuntimeStore:
         user_rank = int(current_rank or self.segment.score_to_rank(score))
         probability = float(self._probabilities(user_rank)[index])
         item = self._item(index, user_rank, probability, None)
-        item["history"] = {
-            "years": ["2026", "2027预测"],
-            "rank": [source["rank_2026"], source["predicted_rank"]],
-            "score": [source["score_2026"], int(round((item["score_low"] + item["score_high"]) / 2))],
-            "plan": [source.get("plan_2026"), None],
-            "admitted": [source.get("admitted_2026"), None],
-        }
+        extra = copy.deepcopy(self.supplement.get("programs", {}).get(unit_id, {}))
+        item.update(extra)
+        public = self.supplement.get("schools", {}).get(source["school"], {})
+        item["official_site"] = public.get("official", {}).get("official_site") or None
+        item.update({key: public["headline"][key] for key in ("city", "ownership")
+                     if public.get("headline", {}).get(key)})
+        item["has_life_data"] = bool(public.get("reviews"))
+        item["school_tier_label"] = public.get("headline", {}).get("tier") or "层次待核验"
+        guide = {}
+        for field, keyword in (("dormitory", "宿舍"), ("canteen", "食堂")):
+            answers = [review for review in public.get("reviews", []) if keyword in review.get("title", "")]
+            answers.sort(key=lambda review: tuple(int(x) for x in re.findall(r"\d+", review.get("date", ""))[:3]), reverse=True)
+            if answers:
+                selected = answers[0]
+                guide[field] = (f"学生反馈（{selected.get('date') or '日期未提供'}）："
+                                f"{selected['title']} {selected['summary'][:220]}。完整回答见生活问卷。")
+        if guide:
+            item["school_guide"] = guide
+        item.setdefault("history_2026", {"year": 2026, "min_rank": source["rank_2026"],
+                                        "min_score": source["score_2026"], "plan_count": source.get("plan_2026"),
+                                        "admitted_count": source.get("admitted_2026")})
+        histories = [item.get(f"history_{year}") or {} for year in (2024, 2025, 2026)]
+        item["history"] = {"years": ["2024", "2025", "2026", "2027预测"],
+                           "rank": [h.get("min_rank") for h in histories] + [source["predicted_rank"]],
+                           "score": [h.get("min_score") for h in histories] + [None],
+                           "plan": [h.get("plan_count") for h in histories] + [None],
+                           "admitted": [h.get("admitted_count") for h in histories] + [None]}
         item["uncertainty_range"] = {
             "rank_80pct": [source["rank_q10"], source["rank_q90"]],
             "rank_90pct": [source["rank_q05"], source["rank_q95"]],
             "score": [item["score_low"], item["score_high"]],
         }
-        item["model_weight_distribution"] = {
-            "annual_rank_delta": 0.52,
-            "school_and_major_history": 0.28,
-            "population_normalization": 0.12,
-            "residual_calibration": 0.08,
-        }
+        item["model_weight_distribution"] = {}
+        item["model_weight_status"] = "unavailable_no_per_prediction_attribution"
         return item
 
     def school_profile(self, school: str) -> dict[str, Any]:
@@ -288,12 +353,12 @@ class RuntimeStore:
             }
             for row in sorted(rows, key=lambda value: int(value["predicted_rank"]))
         ]
-        return {
+        profile = {
             "school": school,
             "headline": {
                 "city": "待补充",
                 "ownership": "待核验",
-                "tier": "普通本科",
+                "tier": "待核验",
                 "category": "物理类",
                 "rank": best_rank,
                 "coverage": len(rows),
@@ -315,6 +380,27 @@ class RuntimeStore:
             "official": {"official_site": "", "admission_site": "", "admission_phone": "待核验"},
             "majors": majors,
         }
+        public = copy.deepcopy(self.supplement.get("schools", {}).get(school, {}))
+        for key, value in public.items():
+            if isinstance(value, dict) and isinstance(profile.get(key), dict):
+                profile[key].update(value)
+            else:
+                profile[key] = value
+        tuition_values = []
+        for row in rows:
+            tuition = self.supplement.get("programs", {}).get(row["unit_id"], {}).get("tuition")
+            if tuition and tuition not in tuition_values:
+                tuition_values.append(tuition)
+        if tuition_values:
+            profile["headline"]["tuition_range"] = "、".join(tuition_values) + "（2026目录，元/年）"
+        known = [profile["headline"].get(k) not in (None, "", "待补充", "待核验")
+                 for k in ("city", "ownership", "tuition_range")]
+        known.extend([bool(profile.get("official", {}).get("official_site")),
+                      bool(profile.get("sections", {}).get("life")),
+                      bool(profile.get("sections", {}).get("major_strength")),
+                      bool(profile.get("sections", {}).get("development"))])
+        profile["headline"]["coverage"] = round(sum(known) / len(known) * 100)
+        return profile
 
     def catalog_schools(self) -> list[dict[str, Any]]:
         rows = []

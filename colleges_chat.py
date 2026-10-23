@@ -7,6 +7,7 @@ import re
 import time
 import urllib.parse
 import urllib.request
+import unicodedata
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -37,7 +38,7 @@ COLLEGES_CHAT_PAGE_BASE_URL = "https://cn.colleges.chat/"
 
 
 def normalize_colleges_chat_name(name: str) -> str:
-    return re.sub(r"\s+", "", str(name or "").strip())
+    return re.sub(r"\s+", "", unicodedata.normalize("NFKC", str(name or "")).strip())
 
 
 def _safe_cache_name(text: str) -> str:

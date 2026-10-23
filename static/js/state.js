@@ -24,7 +24,6 @@ export const state = {
   logoCache: {},
   logoQueueRunning: false,
   logoQueuePromise: null,
-  entryLoaderAnimation: null,
   charts: {},
   mobileStep: "overview",
 };
