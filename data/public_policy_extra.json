@@ -99,5 +99,38 @@
     "expected_phrases": [
       "武汉纺织大学2026年本科招生问答"
     ]
+  },
+  {
+    "school": "重庆财经学院",
+    "title": "重庆财经学院2026年招生章程",
+    "url": "https://www.cq.gov.cn/zwgk/zfxxgkml/zdlyxxgk/jy1/jyzt/gz2026nqggk/zsjz/202606/t20260602_15723290.html",
+    "year": 2026,
+    "kind": "charter",
+    "expected_phrases": [
+      "重庆财经学院2026年招生章程"
+    ],
+    "published_at": null
+  },
+  {
+    "school": "连云港师范学院",
+    "title": "连云港师范学院2026年招生章程",
+    "url": "https://ty.lygsf.edu.cn/2026/0625/c109a41002/page.htm",
+    "year": 2026,
+    "kind": "charter",
+    "expected_phrases": [
+      "连云港师范学院2026年招生章程"
+    ],
+    "published_at": null
+  },
+  {
+    "school": "三明学院",
+    "title": "三明学院2026年普通高考招生章程",
+    "url": "https://www.fjsmu.edu.cn/smxyszb/2026/0625/c4854a183106/page.htm",
+    "year": 2026,
+    "kind": "charter",
+    "expected_phrases": [
+      "三明学院2026年普通高考招生章程"
+    ],
+    "published_at": null
   }
 ]

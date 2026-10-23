@@ -1,0 +1,1061 @@
+{
+  "documents": [
+    {
+      "school": "云南大学",
+      "year": 2026,
+      "kind": "charter",
+      "url": "https://zsb.ynu.edu.cn/info/1049/3400.htm",
+      "title": "云南大学2026年本科招生章程",
+      "expected_phrases": [
+        "云南大学2026年本科招生章程",
+        "第五章 学费及学生资助政策",
+        "第二十八条 学费和住宿费"
+      ],
+      "scope": "普通本科收费；仅记录同条明列的专业费率。",
+      "published_at": "2026-05-22",
+      "cache_path": "data/raw/collections/comprehensive/ynu-charter.html",
+      "fees_rows": [
+        {
+          "major": "经济学",
+          "tuition": 5000,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明确列名专业",
+          "evidence_text": "执行“基准学费+浮动机制”的专业为：经济学、金融学、法学，5000元/生/学年。",
+          "source_page": "第五章第二十八条（一）第1款"
+        },
+        {
+          "major": "金融学",
+          "tuition": 5000,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明确列名专业",
+          "evidence_text": "执行“基准学费+浮动机制”的专业为：经济学、金融学、法学，5000元/生/学年。",
+          "source_page": "第五章第二十八条（一）第1款"
+        },
+        {
+          "major": "法学",
+          "tuition": 5000,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明确列名专业",
+          "evidence_text": "执行“基准学费+浮动机制”的专业为：经济学、金融学、法学，5000元/生/学年。",
+          "source_page": "第五章第二十八条（一）第1款"
+        },
+        {
+          "major": "生物科学",
+          "tuition": 5600,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明确列名专业",
+          "evidence_text": "执行“基准学费+浮动机制”的专业为：生物科学、生物技术、生态学、数理基础科学、物理学、数学与应用数学、统计学、大气科学、电子信息工程、通信工程、计算机科学与技术、数据科学与大数据技术、材料科学与工程，5600元/生/学年。",
+          "source_page": "第五章第二十八条（一）第1款"
+        },
+        {
+          "major": "生物技术",
+          "tuition": 5600,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明确列名专业",
+          "evidence_text": "执行“基准学费+浮动机制”的专业为：生物科学、生物技术、生态学、数理基础科学、物理学、数学与应用数学、统计学、大气科学、电子信息工程、通信工程、计算机科学与技术、数据科学与大数据技术、材料科学与工程，5600元/生/学年。",
+          "source_page": "第五章第二十八条（一）第1款"
+        },
+        {
+          "major": "生态学",
+          "tuition": 5600,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明确列名专业",
+          "evidence_text": "执行“基准学费+浮动机制”的专业为：生物科学、生物技术、生态学、数理基础科学、物理学、数学与应用数学、统计学、大气科学、电子信息工程、通信工程、计算机科学与技术、数据科学与大数据技术、材料科学与工程，5600元/生/学年。",
+          "source_page": "第五章第二十八条（一）第1款"
+        },
+        {
+          "major": "数理基础科学",
+          "tuition": 5600,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明确列名专业",
+          "evidence_text": "执行“基准学费+浮动机制”的专业为：生物科学、生物技术、生态学、数理基础科学、物理学、数学与应用数学、统计学、大气科学、电子信息工程、通信工程、计算机科学与技术、数据科学与大数据技术、材料科学与工程，5600元/生/学年。",
+          "source_page": "第五章第二十八条（一）第1款"
+        },
+        {
+          "major": "物理学",
+          "tuition": 5600,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明确列名专业",
+          "evidence_text": "执行“基准学费+浮动机制”的专业为：生物科学、生物技术、生态学、数理基础科学、物理学、数学与应用数学、统计学、大气科学、电子信息工程、通信工程、计算机科学与技术、数据科学与大数据技术、材料科学与工程，5600元/生/学年。",
+          "source_page": "第五章第二十八条（一）第1款"
+        },
+        {
+          "major": "数学与应用数学",
+          "tuition": 5600,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明确列名专业",
+          "evidence_text": "执行“基准学费+浮动机制”的专业为：生物科学、生物技术、生态学、数理基础科学、物理学、数学与应用数学、统计学、大气科学、电子信息工程、通信工程、计算机科学与技术、数据科学与大数据技术、材料科学与工程，5600元/生/学年。",
+          "source_page": "第五章第二十八条（一）第1款"
+        },
+        {
+          "major": "统计学",
+          "tuition": 5600,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明确列名专业",
+          "evidence_text": "执行“基准学费+浮动机制”的专业为：生物科学、生物技术、生态学、数理基础科学、物理学、数学与应用数学、统计学、大气科学、电子信息工程、通信工程、计算机科学与技术、数据科学与大数据技术、材料科学与工程，5600元/生/学年。",
+          "source_page": "第五章第二十八条（一）第1款"
+        },
+        {
+          "major": "大气科学",
+          "tuition": 5600,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明确列名专业",
+          "evidence_text": "执行“基准学费+浮动机制”的专业为：生物科学、生物技术、生态学、数理基础科学、物理学、数学与应用数学、统计学、大气科学、电子信息工程、通信工程、计算机科学与技术、数据科学与大数据技术、材料科学与工程，5600元/生/学年。",
+          "source_page": "第五章第二十八条（一）第1款"
+        },
+        {
+          "major": "电子信息工程",
+          "tuition": 5600,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明确列名专业",
+          "evidence_text": "执行“基准学费+浮动机制”的专业为：生物科学、生物技术、生态学、数理基础科学、物理学、数学与应用数学、统计学、大气科学、电子信息工程、通信工程、计算机科学与技术、数据科学与大数据技术、材料科学与工程，5600元/生/学年。",
+          "source_page": "第五章第二十八条（一）第1款"
+        },
+        {
+          "major": "通信工程",
+          "tuition": 5600,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明确列名专业",
+          "evidence_text": "执行“基准学费+浮动机制”的专业为：生物科学、生物技术、生态学、数理基础科学、物理学、数学与应用数学、统计学、大气科学、电子信息工程、通信工程、计算机科学与技术、数据科学与大数据技术、材料科学与工程，5600元/生/学年。",
+          "source_page": "第五章第二十八条（一）第1款"
+        },
+        {
+          "major": "计算机科学与技术",
+          "tuition": 5600,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明确列名专业",
+          "evidence_text": "执行“基准学费+浮动机制”的专业为：生物科学、生物技术、生态学、数理基础科学、物理学、数学与应用数学、统计学、大气科学、电子信息工程、通信工程、计算机科学与技术、数据科学与大数据技术、材料科学与工程，5600元/生/学年。",
+          "source_page": "第五章第二十八条（一）第1款"
+        },
+        {
+          "major": "数据科学与大数据技术",
+          "tuition": 5600,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明确列名专业",
+          "evidence_text": "执行“基准学费+浮动机制”的专业为：生物科学、生物技术、生态学、数理基础科学、物理学、数学与应用数学、统计学、大气科学、电子信息工程、通信工程、计算机科学与技术、数据科学与大数据技术、材料科学与工程，5600元/生/学年。",
+          "source_page": "第五章第二十八条（一）第1款"
+        },
+        {
+          "major": "材料科学与工程",
+          "tuition": 5600,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明确列名专业",
+          "evidence_text": "执行“基准学费+浮动机制”的专业为：生物科学、生物技术、生态学、数理基础科学、物理学、数学与应用数学、统计学、大气科学、电子信息工程、通信工程、计算机科学与技术、数据科学与大数据技术、材料科学与工程，5600元/生/学年。",
+          "source_page": "第五章第二十八条（一）第1款"
+        },
+        {
+          "major": "软件工程",
+          "tuition": 5000,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；第一、二学年；中外合作办学收费项目除外",
+          "evidence_text": "软件工程、数字媒体技术、网络空间安全、人工智能，第一、二学年学费5000元/生/学年，第三、四学年学费12000元/生/学年。",
+          "source_page": "第五章第二十八条（一）第4款"
+        },
+        {
+          "major": "软件工程",
+          "tuition": 12000,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；第三、四学年；中外合作办学收费项目除外",
+          "evidence_text": "软件工程、数字媒体技术、网络空间安全、人工智能，第一、二学年学费5000元/生/学年，第三、四学年学费12000元/生/学年。",
+          "source_page": "第五章第二十八条（一）第4款"
+        },
+        {
+          "major": "数字媒体技术",
+          "tuition": 5000,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；第一、二学年；中外合作办学收费项目除外",
+          "evidence_text": "软件工程、数字媒体技术、网络空间安全、人工智能，第一、二学年学费5000元/生/学年，第三、四学年学费12000元/生/学年。",
+          "source_page": "第五章第二十八条（一）第4款"
+        },
+        {
+          "major": "数字媒体技术",
+          "tuition": 12000,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；第三、四学年；中外合作办学收费项目除外",
+          "evidence_text": "软件工程、数字媒体技术、网络空间安全、人工智能，第一、二学年学费5000元/生/学年，第三、四学年学费12000元/生/学年。",
+          "source_page": "第五章第二十八条（一）第4款"
+        },
+        {
+          "major": "网络空间安全",
+          "tuition": 5000,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；第一、二学年；中外合作办学收费项目除外",
+          "evidence_text": "软件工程、数字媒体技术、网络空间安全、人工智能，第一、二学年学费5000元/生/学年，第三、四学年学费12000元/生/学年。",
+          "source_page": "第五章第二十八条（一）第4款"
+        },
+        {
+          "major": "网络空间安全",
+          "tuition": 12000,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；第三、四学年；中外合作办学收费项目除外",
+          "evidence_text": "软件工程、数字媒体技术、网络空间安全、人工智能，第一、二学年学费5000元/生/学年，第三、四学年学费12000元/生/学年。",
+          "source_page": "第五章第二十八条（一）第4款"
+        },
+        {
+          "major": "人工智能",
+          "tuition": 5000,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；第一、二学年；中外合作办学收费项目除外",
+          "evidence_text": "软件工程、数字媒体技术、网络空间安全、人工智能，第一、二学年学费5000元/生/学年，第三、四学年学费12000元/生/学年。",
+          "source_page": "第五章第二十八条（一）第4款"
+        },
+        {
+          "major": "人工智能",
+          "tuition": 12000,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；第三、四学年；中外合作办学收费项目除外",
+          "evidence_text": "软件工程、数字媒体技术、网络空间安全、人工智能，第一、二学年学费5000元/生/学年，第三、四学年学费12000元/生/学年。",
+          "source_page": "第五章第二十八条（一）第4款"
+        }
+      ],
+      "source_url": "https://zsb.ynu.edu.cn/info/1049/3400.htm",
+      "source_year": 2026,
+      "license": "高校公开网页",
+      "fetched_at": 1792742888,
+      "sha256": "6addd9d9e651363d14d8f902757eb4a514f65f2b59e6184c7d0d12dcd1f73616",
+      "bytes": 100622,
+      "identity_verified": true
+    },
+    {
+      "school": "云南大学",
+      "year": 2026,
+      "kind": "fees",
+      "url": "https://www.stuhome.ynu.edu.cn/info/1009/1723.htm",
+      "title": "云南大学学生公寓（宿舍）收费公示",
+      "expected_phrases": [
+        "云南大学学生公寓（宿舍）收费公示",
+        "发文时间：2026-06-16",
+        "四人间（一类公寓）",
+        "六人间（一类公寓）"
+      ],
+      "scope": "学生公寓住宿费；按学校公寓类别，不对应专业。",
+      "published_at": "2026-06-16",
+      "cache_path": "data/raw/collections/comprehensive/ynu-housing.html",
+      "fees_rows": [],
+      "source_url": "https://www.stuhome.ynu.edu.cn/info/1009/1723.htm",
+      "source_year": 2026,
+      "license": "高校公开网页",
+      "fetched_at": 1792742905,
+      "sha256": "156faa50b91c43e8529d856be6326a8b35ee19ade538a78aff027e47739f2115",
+      "bytes": 21124,
+      "identity_verified": true
+    },
+    {
+      "school": "青海大学",
+      "year": 2026,
+      "kind": "charter",
+      "url": "https://zsw.qhu.edu.cn/zsxx/zszc/16e3271101794debb1d61c68cd693347.htm",
+      "title": "青海大学2026年全日制普通本科招生章程",
+      "expected_phrases": [
+        "青海大学2026年全日制普通本科招生章程",
+        "全日制公办学校",
+        "学费标准",
+        "住宿费标准"
+      ],
+      "scope": "普通本科招生和学校公办性质；住宿费按房型600–1200元/生·学年。",
+      "published_at": "2026-05-29",
+      "cache_path": "data/raw/collections/comprehensive/qhu-charter.html",
+      "fees_rows": [],
+      "source_url": "https://zsw.qhu.edu.cn/zsxx/zszc/16e3271101794debb1d61c68cd693347.htm",
+      "source_year": 2026,
+      "license": "高校公开网页",
+      "fetched_at": 1792742906,
+      "sha256": "2fc900f9466f17677ce3b5c61945c1d09483ebebd7fe943aea6ee17ccc9d0388",
+      "bytes": 47799,
+      "identity_verified": true
+    },
+    {
+      "school": "青海大学",
+      "year": 2026,
+      "kind": "fees",
+      "url": "https://xxgk.qhu.edu.cn/xxgklm/cwzcjsfxx/cwgl/jysf/sfxmyjbz/2c96a8f180d740478c5c5aa044d772ab.htm",
+      "title": "青海大学2026年学费收费标准公示",
+      "expected_phrases": [
+        "青海大学2026年学费收费标准公示",
+        "2026-09-02",
+        "青海大学信息公开网"
+      ],
+      "scope": "官方收费公示通知，链接至附件收费表。",
+      "published_at": "2026-09-02",
+      "cache_path": "data/raw/collections/comprehensive/qhu-fees.html",
+      "fees_rows": [],
+      "source_url": "https://xxgk.qhu.edu.cn/xxgklm/cwzcjsfxx/cwgl/jysf/sfxmyjbz/2c96a8f180d740478c5c5aa044d772ab.htm",
+      "source_year": 2026,
+      "license": "高校公开网页",
+      "fetched_at": 1792743004,
+      "sha256": "a89fab2eb0c849d60158e24b733393c35205e609247a38246386768170c8e282",
+      "bytes": 17149,
+      "identity_verified": true
+    },
+    {
+      "school": "青海大学",
+      "year": 2026,
+      "kind": "fees",
+      "url": "https://xxgk.qhu.edu.cn/docs//2026-09/9e5999c418c44be2a95669d9e37e43d1.jpg",
+      "title": "青海大学收费公示（普通本科费率附件图）",
+      "expected_phrases": [
+        "青海大学收费公示",
+        "本科教育",
+        "食品科学与工程",
+        "储能科学与工程",
+        "临床医学"
+      ],
+      "scope": "官方通知所附收费图表；该附件行按其发布页面确认属于2026年公示。普通本科收费表仅第1–50项；排除研究生、成人职业高等教育、专升本收费。",
+      "published_at": null,
+      "cache_path": "data/raw/collections/comprehensive/qhu-fees-2026.jpg",
+      "fees_rows": [
+        {
+          "major": "食品科学与工程",
+          "tuition": 5460,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "食品科学与工程｜5460.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第1项"
+        },
+        {
+          "major": "化学工程与工艺",
+          "tuition": 5460,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "化学工程与工艺｜5460.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第2项"
+        },
+        {
+          "major": "应用化学",
+          "tuition": 5460,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "应用化学｜5460.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第3项"
+        },
+        {
+          "major": "环境工程",
+          "tuition": 5460,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "环境工程｜5460.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第4项"
+        },
+        {
+          "major": "过程装备与控制工程",
+          "tuition": 5460,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "过程装备与控制工程｜5460.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第5项"
+        },
+        {
+          "major": "自动化",
+          "tuition": 5460,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "自动化｜5460.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第6项"
+        },
+        {
+          "major": "环境生态工程",
+          "tuition": 5460,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "环境生态工程｜5460.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第7项"
+        },
+        {
+          "major": "计算机科学与技术",
+          "tuition": 5460,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "计算机科学与技术｜5460.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第8项"
+        },
+        {
+          "major": "土木工程",
+          "tuition": 5460,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "土木工程｜5460.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第9项"
+        },
+        {
+          "major": "城乡规划",
+          "tuition": 5460,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "城乡规划｜5460.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第10项"
+        },
+        {
+          "major": "工程管理",
+          "tuition": 5460,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "工程管理｜5460.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第11项"
+        },
+        {
+          "major": "机械设计制造及其自动化",
+          "tuition": 5460,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "机械设计制造及其自动化｜5460.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第12项"
+        },
+        {
+          "major": "材料成型及控制工程",
+          "tuition": 5460,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "材料成型及控制工程｜5460.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第13项"
+        },
+        {
+          "major": "材料科学与工程",
+          "tuition": 5460,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "材料科学与工程｜5460.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第14项"
+        },
+        {
+          "major": "冶金工程",
+          "tuition": 5460,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "冶金工程｜5460.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第15项"
+        },
+        {
+          "major": "水利水电工程",
+          "tuition": 5460,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "水利水电工程｜5460.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第16项"
+        },
+        {
+          "major": "电气工程及其自动化",
+          "tuition": 5460,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "电气工程及其自动化｜5460.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第17项"
+        },
+        {
+          "major": "资源勘查工程",
+          "tuition": 5460,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "资源勘查工程｜5460.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第18项"
+        },
+        {
+          "major": "地质工程",
+          "tuition": 5460,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "地质工程｜5460.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第19项"
+        },
+        {
+          "major": "测绘工程",
+          "tuition": 5460,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "测绘工程｜5460.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第20项"
+        },
+        {
+          "major": "新能源材料与器件",
+          "tuition": 5460,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "新能源材料与器件｜5460.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第21项"
+        },
+        {
+          "major": "储能科学与工程",
+          "tuition": 5460,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "储能科学与工程｜5460.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第22项"
+        },
+        {
+          "major": "金融学",
+          "tuition": 4720,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "金融学｜4720.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第23项"
+        },
+        {
+          "major": "旅游管理",
+          "tuition": 4720,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "旅游管理｜4720.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第24项"
+        },
+        {
+          "major": "经济学",
+          "tuition": 4720,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "经济学｜4720.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第25项"
+        },
+        {
+          "major": "工商管理",
+          "tuition": 4720,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "工商管理｜4720.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第26项"
+        },
+        {
+          "major": "会计学",
+          "tuition": 4720,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "会计学｜4720.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第27项"
+        },
+        {
+          "major": "人力资源管理",
+          "tuition": 4720,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "人力资源管理｜4720.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第28项"
+        },
+        {
+          "major": "数字经济",
+          "tuition": 4720,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "数字经济｜4720.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第29项"
+        },
+        {
+          "major": "护理学",
+          "tuition": 5250,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "护理学｜5250.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第30项"
+        },
+        {
+          "major": "药学",
+          "tuition": 5250,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "药学｜5250.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第31项"
+        },
+        {
+          "major": "中药学",
+          "tuition": 5250,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "中药学｜5250.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第32项"
+        },
+        {
+          "major": "康复治疗学",
+          "tuition": 5250,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "康复治疗学｜5250.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第33项"
+        },
+        {
+          "major": "生物技术",
+          "tuition": 5250,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "生物技术｜5250.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第34项"
+        },
+        {
+          "major": "环境科学",
+          "tuition": 5250,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "环境科学｜5250.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第35项"
+        },
+        {
+          "major": "生态学",
+          "tuition": 5250,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "生态学｜5250.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第36项"
+        },
+        {
+          "major": "农学",
+          "tuition": 5250,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "农学｜5250.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第37项"
+        },
+        {
+          "major": "园艺",
+          "tuition": 5250,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "园艺｜5250.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第38项"
+        },
+        {
+          "major": "林学",
+          "tuition": 5250,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "林学｜5250.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第39项"
+        },
+        {
+          "major": "植物保护",
+          "tuition": 5250,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "植物保护｜5250.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第40项"
+        },
+        {
+          "major": "动物医学",
+          "tuition": 5250,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "动物医学｜5250.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第41项"
+        },
+        {
+          "major": "动物科学",
+          "tuition": 5250,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "动物科学｜5250.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第42项"
+        },
+        {
+          "major": "草业科学",
+          "tuition": 5250,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "草业科学｜5250.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第43项"
+        },
+        {
+          "major": "藏药学",
+          "tuition": 5250,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "藏药学｜5250.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第44项"
+        },
+        {
+          "major": "临床医学",
+          "tuition": 5770,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "临床医学｜5770.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第45项"
+        },
+        {
+          "major": "口腔医学",
+          "tuition": 5770,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "口腔医学｜5770.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第46项"
+        },
+        {
+          "major": "预防医学",
+          "tuition": 5770,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "预防医学｜5770.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第47项"
+        },
+        {
+          "major": "中医学",
+          "tuition": 5770,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "中医学｜5770.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第48项"
+        },
+        {
+          "major": "针灸推拿学",
+          "tuition": 5770,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "针灸推拿学｜5770.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第49项"
+        },
+        {
+          "major": "藏医学",
+          "tuition": 5770,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026本科公示明列专业；只含本科教育表第1–50项",
+          "evidence_text": "藏医学｜5770.00｜本科教育收费公示（普通本科专业）",
+          "source_page": "2026年学费收费标准公示图片，第50项"
+        }
+      ],
+      "source_url": "https://xxgk.qhu.edu.cn/docs//2026-09/9e5999c418c44be2a95669d9e37e43d1.jpg",
+      "source_year": 2026,
+      "license": "高校公开网页",
+      "fetched_at": 1792743020,
+      "sha256": "3ee3319ec74a68a858f334914706afd529c24b1b9de29e82bc617a753a7462ab",
+      "bytes": 336879,
+      "identity_verified": true
+    },
+    {
+      "school": "武汉大学",
+      "year": 2026,
+      "kind": "charter",
+      "url": "https://aoff.whu.edu.cn/info/1066/27002.htm",
+      "title": "武汉大学全日制普通本科招生章程（2026年修订）",
+      "expected_phrases": [
+        "武汉大学全日制普通本科招生章程",
+        "2026年修订",
+        "武汉大学本科招生网"
+      ],
+      "scope": "2026普通本科章程；学费/住宿费按湖北省批复，未列出具体金额。",
+      "published_at": "2026-06-03",
+      "cache_path": "data/raw/collections/comprehensive/whu-charter.html",
+      "fees_rows": [],
+      "source_url": "https://aoff.whu.edu.cn/info/1066/27002.htm",
+      "source_year": 2026,
+      "license": "高校公开网页",
+      "fetched_at": 1792743081,
+      "sha256": "9671ebd7f84996e02760a0422f3d727703b7a4816035110cee9cfa0383d202dc",
+      "bytes": 43278,
+      "identity_verified": true
+    },
+    {
+      "school": "武汉工程大学",
+      "year": 2026,
+      "kind": "fees",
+      "url": "https://xxgk.wit.edu.cn/info/1193/10087.htm",
+      "title": "武汉工程大学2026-2027学年收费标准目录清单",
+      "expected_phrases": [
+        "武汉工程大学2026-2027学年收费标准目录清单",
+        "2026/07/27"
+      ],
+      "scope": "学校公开的收费目录页；附件需验证码，未据此抽取专业费率。",
+      "published_at": "2026-07-27",
+      "cache_path": "data/raw/collections/comprehensive/wit-fees.html",
+      "fees_rows": [],
+      "source_url": "https://xxgk.wit.edu.cn/info/1193/10087.htm",
+      "source_year": 2026,
+      "license": "高校公开网页",
+      "fetched_at": 1792742906,
+      "sha256": "a7f847062e9c97c2ce82e51dcabb8fcf478554dd0f627096457e29b4bfe2ae28",
+      "bytes": 22683,
+      "identity_verified": true
+    },
+    {
+      "school": "长江大学",
+      "year": 2026,
+      "kind": "charter",
+      "url": "https://zszc.yangtzeu.edu.cn/info/1008/2667.htm",
+      "title": "长江大学2026年全日制普通本科招生章程",
+      "expected_phrases": [
+        "长江大学2026年全日制普通本科招生章程",
+        "2026-06-03",
+        "收费标准"
+      ],
+      "scope": "2026普通本科招生章程；收费按收费目录执行。",
+      "published_at": "2026-06-03",
+      "cache_path": "data/raw/collections/comprehensive/yangtze-charter.html",
+      "fees_rows": [],
+      "source_url": "https://zszc.yangtzeu.edu.cn/info/1008/2667.htm",
+      "source_year": 2026,
+      "license": "高校公开网页",
+      "fetched_at": 1792743216,
+      "sha256": "67c3d3d0bc94d77a1451d644aa21112aedb9eddfec9ae3d54bf87d7741f604ef",
+      "bytes": 25939,
+      "identity_verified": true
+    },
+    {
+      "school": "大连民族大学",
+      "year": 2026,
+      "kind": "charter",
+      "url": "https://zs.dlnu.edu.cn/info/1038/2031.htm",
+      "title": "大连民族大学2026年本（预）科招生章程",
+      "expected_phrases": [
+        "大连民族大学2026年本（预）科招生章程",
+        "办学性质：公办全日制普通高等学校",
+        "五、学费标准",
+        "每学年住宿费"
+      ],
+      "scope": "普通本科费率；排除中外合作、少数民族预科。",
+      "published_at": "2026-05-25",
+      "cache_path": "data/raw/collections/comprehensive/dlnu-charter.html",
+      "fees_rows": [
+        {
+          "major": "法学",
+          "tuition": 4800,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明示专业列表；不含中外合作与少数民族预科",
+          "evidence_text": "法学、新闻学、汉语言文学、英语、日语、朝鲜语专业，学费4800元/年。",
+          "source_page": "五、学费标准"
+        },
+        {
+          "major": "新闻学",
+          "tuition": 4800,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明示专业列表；不含中外合作与少数民族预科",
+          "evidence_text": "法学、新闻学、汉语言文学、英语、日语、朝鲜语专业，学费4800元/年。",
+          "source_page": "五、学费标准"
+        },
+        {
+          "major": "汉语言文学",
+          "tuition": 4800,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明示专业列表；不含中外合作与少数民族预科",
+          "evidence_text": "法学、新闻学、汉语言文学、英语、日语、朝鲜语专业，学费4800元/年。",
+          "source_page": "五、学费标准"
+        },
+        {
+          "major": "英语",
+          "tuition": 4800,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明示专业列表；不含中外合作与少数民族预科",
+          "evidence_text": "法学、新闻学、汉语言文学、英语、日语、朝鲜语专业，学费4800元/年。",
+          "source_page": "五、学费标准"
+        },
+        {
+          "major": "日语",
+          "tuition": 4800,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明示专业列表；不含中外合作与少数民族预科",
+          "evidence_text": "法学、新闻学、汉语言文学、英语、日语、朝鲜语专业，学费4800元/年。",
+          "source_page": "五、学费标准"
+        },
+        {
+          "major": "朝鲜语",
+          "tuition": 4800,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明示专业列表；不含中外合作与少数民族预科",
+          "evidence_text": "法学、新闻学、汉语言文学、英语、日语、朝鲜语专业，学费4800元/年。",
+          "source_page": "五、学费标准"
+        },
+        {
+          "major": "视觉传达设计",
+          "tuition": 10000,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明示专业列表；不含中外合作与少数民族预科",
+          "evidence_text": "视觉传达设计、产品设计、公共艺术、航空服务艺术与管理专业，学费10000元/年。",
+          "source_page": "五、学费标准"
+        },
+        {
+          "major": "产品设计",
+          "tuition": 10000,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明示专业列表；不含中外合作与少数民族预科",
+          "evidence_text": "视觉传达设计、产品设计、公共艺术、航空服务艺术与管理专业，学费10000元/年。",
+          "source_page": "五、学费标准"
+        },
+        {
+          "major": "公共艺术",
+          "tuition": 10000,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明示专业列表；不含中外合作与少数民族预科",
+          "evidence_text": "视觉传达设计、产品设计、公共艺术、航空服务艺术与管理专业，学费10000元/年。",
+          "source_page": "五、学费标准"
+        },
+        {
+          "major": "航空服务艺术与管理",
+          "tuition": 10000,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；章程明示专业列表；不含中外合作与少数民族预科",
+          "evidence_text": "视觉传达设计、产品设计、公共艺术、航空服务艺术与管理专业，学费10000元/年。",
+          "source_page": "五、学费标准"
+        }
+      ],
+      "source_url": "https://zs.dlnu.edu.cn/info/1038/2031.htm",
+      "source_year": 2026,
+      "license": "高校公开网页",
+      "fetched_at": 1792742907,
+      "sha256": "54284313189e34239a8ffa02b082eaa03ce900bb35c656958332b546d657509c",
+      "bytes": 37921,
+      "identity_verified": true
+    },
+    {
+      "school": "内蒙古大学",
+      "year": 2026,
+      "kind": "charter",
+      "url": "https://zhaosheng.imu.edu.cn/info/1003/1081.htm",
+      "title": "内蒙古大学2026年本科招生章程",
+      "expected_phrases": [
+        "内蒙古大学2026年本科招生章程",
+        "第二条 学校全称为内蒙古大学",
+        "学费收费标准",
+        "软件工程专业9000元/人年"
+      ],
+      "scope": "公办普通本科；仅记录章程点名专业，未按大类推导到专业。",
+      "published_at": "2026-06-11",
+      "cache_path": "data/raw/collections/comprehensive/imu-charter.html",
+      "fees_rows": [
+        {
+          "major": "软件工程",
+          "tuition": 9000,
+          "currency": "CNY",
+          "unit": "元/生/学年",
+          "scope": "2026普通本科；仅记录点名专业；未将大类费率映射到专业",
+          "evidence_text": "内蒙古大学学费收费标准：文史类4620元/人年；财经类4840元/人年；理工农类5060元/人年；体育类7200元/人年；软件学院软件工程专业9000元/人年。",
+          "source_page": "第二十一条"
+        }
+      ],
+      "source_url": "https://zhaosheng.imu.edu.cn/info/1003/1081.htm",
+      "source_year": 2026,
+      "license": "高校公开网页",
+      "fetched_at": 1792742907,
+      "sha256": "0a333e3f699988552e5ca17093969f7f8e23438ee0210ec3a412c925c4ec7058",
+      "bytes": 18786,
+      "identity_verified": true
+    },
+    {
+      "school": "西南大学",
+      "year": 2026,
+      "kind": "charter",
+      "url": "https://bkzsw.swu.edu.cn/info/1067/2015.htm",
+      "title": "西南大学2026年普通本科招生章程",
+      "expected_phrases": [
+        "西南大学2026年普通本科招生章程",
+        "教育部直属",
+        "第七章 收费和资助",
+        "学费标准"
+      ],
+      "scope": "普通本科招生；学费仅按专业大类给范围，未推导到单专业。",
+      "published_at": "2026-06-02",
+      "cache_path": "data/raw/collections/comprehensive/swu-charter.html",
+      "fees_rows": [],
+      "source_url": "https://bkzsw.swu.edu.cn/info/1067/2015.htm",
+      "source_year": 2026,
+      "license": "高校公开网页",
+      "fetched_at": 1792742909,
+      "sha256": "688a85efef073e6cb1d5c2386adc3807805dfbeebd106843103789920afacf39",
+      "bytes": 69773,
+      "identity_verified": true
+    },
+    {
+      "school": "江西师范大学",
+      "year": 2025,
+      "kind": "charter",
+      "url": "https://zsjy.jxnu.edu.cn/bzsview.asp?id=10954",
+      "title": "江西师范大学2025年本科生招生章程",
+      "expected_phrases": [
+        "江西师范大学2025年本科生招生章程",
+        "附件：江西师范大学 2025 年学生入学收费项目与标准"
+      ],
+      "scope": "历史2025校方资料；附表按专业类收费，未将大类费率推导至专业。",
+      "published_at": "2025-04-22",
+      "cache_path": "data/raw/collections/comprehensive/jxnu2025.html",
+      "fees_rows": [],
+      "source_url": "https://zsjy.jxnu.edu.cn/bzsview.asp?id=10954",
+      "source_year": 2025,
+      "license": "高校公开网页",
+      "fetched_at": 1792742986,
+      "sha256": "67eecf35a65b51148ec6e45327c21414e051571c5824520686128efb21c417d3",
+      "bytes": 72997,
+      "identity_verified": true
+    }
+  ],
+  "errors": [
+    {
+      "school": "武汉工程大学",
+      "url": "https://xxgk.wit.edu.cn/system/_content/download.jsp?urltype=news.DownloadAttachUrl&owner=1360762925&wbfileid=17BDE35F04A4B2D8A3531184F6046D87",
+      "error": "官方收费目录附件下载要求验证码，未尝试绕过；无法核对附件专业明细。"
+    }
+  ]
+}

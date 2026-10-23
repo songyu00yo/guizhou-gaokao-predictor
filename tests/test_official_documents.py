@@ -51,3 +51,38 @@ def test_unofficial_host_and_wrong_identity_cannot_fill_profile(monkeypatch, tmp
     assert report['verified_documents'] == 0
     assert len(report['errors']) == 1
     assert profiles['目标大学']['sections'] == {}
+
+
+def test_fee_validation_keeps_nested_table_cells_and_rejects_substring_major(monkeypatch, tmp_path: Path):
+    document = {'school': '测试大学', 'year': 2026, 'kind': 'fees', 'title': '测试大学2026学费公示',
+        'url': 'https://test.edu.cn/fees', 'fees_rows': [
+            {'major': '药学', 'tuition': 4200, 'currency': 'CNY', 'unit': '元/年', 'scope': '普通本科'},
+            {'major': '药学', 'tuition': 4500, 'currency': 'CNY', 'unit': '元/年', 'scope': '普通本科'},
+            {'major': '医学影像技术', 'tuition': 18000, 'currency': 'CNY', 'unit': '元/年', 'scope': '普通本科'},
+        ]}
+    registry = tmp_path / 'registry.json'
+    registry.write_text(json.dumps([document]), encoding='utf-8')
+    content = ('<h1>测试大学2026学费公示</h1><p>' + '收费项目须按公开标准执行，具体专业标准如表。'*30 + '</p>'
+        '<table><tr><td><p>药学、中药学</p></td><td><p>4200元/年</p></td></tr>'
+        '<tr><td>临床药学</td><td>4500元/年</td></tr>'
+        '<tr><td>医学影像技术(中外合作)</td><td>18000元/年</td></tr></table>').encode()
+    monkeypatch.setattr(docs, '_read_cached', lambda *a, **k: (content, {'sha256': 'hash', 'fetched_at': 1}))
+    profiles = {'测试大学': {'sections': {}, 'source_summary': []}}
+    docs.attach_official_documents(profiles, tmp_path, registry_paths=[registry])
+    fees = profiles['测试大学']['official_documents'][0]['tuition_rows']
+    assert [(row['major'], row['tuition']) for row in fees] == [('药学', '4200')]
+
+
+def test_exact_major_fee_fills_missing_and_keeps_existing_conflict():
+    supplement = {'schools': {'测试大学': {'official_documents': [{
+        'year': 2026, 'source_url': 'https://test.edu.cn/fees', 'sha256': 'hash', 'scope': '普通本科',
+        'tuition_rows': [{'major': '药学', 'tuition': '4200'}, {'major': '化学', 'tuition': '5000'}],
+    }]}}, 'programs': {'a': {'missing_fields': ['tuition']}, 'b': {'tuition': '4500'}}, 'coverage': {}}
+    forecasts = [{'school': '测试大学', 'major': '药学', 'unit_id': 'a'},
+                 {'school': '测试大学', 'major': '化学', 'unit_id': 'b'}]
+    report = docs.attach_verified_tuitions(supplement, forecasts)
+    assert report['filled'] == 1
+    assert supplement['programs']['a']['tuition'] == '4200'
+    assert supplement['programs']['a']['missing_fields'] == []
+    assert supplement['programs']['b']['tuition'] == '4500'
+    assert len(report['conflicts']) == 1

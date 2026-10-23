@@ -18,7 +18,7 @@ LANGUAGE_PATTERN = r"(?:不限|英语|俄语|日语|法语|德语|西班牙语|�
 MAJOR_TAIL = re.compile(
     rf"(?P<subject>{SUBJECT_PATTERN})\s+(?P<plan>\d{{1,4}})\s+(?P<language>{LANGUAGE_PATTERN})(?:\s+[2-9])?(?:\s+(?P<tuition>\d{{3,6}}|免费|待定))?\s*$"
 )
-SCHOOL_LINE = re.compile(r"^(?P<code>\d{4})\s+(?P<name>.+?)\s+(?P<total>\d{1,5})$")
+SCHOOL_LINE = re.compile(r"^(?P<code>\d{4})\s*(?P<name>.+?)\s*(?P<total>\d{1,5})$")
 MAJOR_START = re.compile(r"^(?P<code>[0-9A-Z]{3})\s+(?P<body>.+)$")
 
 
@@ -43,13 +43,19 @@ def _clean(value: Any) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _clean_school_heading(value: str) -> str:
+    text = re.sub(r"│[^│]{0,30}│", "", value)
+    return _clean(re.sub(r"制\s*元/年", "", text))
+
+
 def _is_noise(line: str) -> bool:
-    compact = re.sub(r"\s+", "", line)
+    compact = re.sub(r"[\s│|]+", "", line)
     return (
         not compact
         or compact.startswith("代码院校")
         or compact.startswith("贵州省")
         or compact.startswith("元/年")
+        or compact.startswith("制元/年")
         or compact.startswith("第") and "页" in compact
         or bool(re.fullmatch(r"\d+\s*/\s*\d+", line))
         or compact in {"本科", "普通类", "本科普通类", "高校专项计划", "国家专项计划", "地方专项计划"}
@@ -70,15 +76,26 @@ def _parse_major_buffer(
     text = _clean(" ".join(buffer))
     text = text.split("[", 1)[0].strip()
     tail = MAJOR_TAIL.search(text)
+    major_name = text[:tail.start()].strip(" ;；") if tail else ""
+    if not tail:
+        # Names may wrap below a first line whose numeric columns are complete.
+        # Read those columns from the completed prefix, then join only the name.
+        for length in range(1, len(buffer)):
+            prefix = _clean(" ".join(buffer[:length]))
+            candidate = MAJOR_TAIL.search(prefix)
+            continuation = _clean(" ".join(buffer[length:]))
+            if candidate and re.fullmatch(r"[\u4e00-\u9fffA-Za-z()·+ /-]{1,60}", continuation):
+                tail = candidate
+                major_name = prefix[:candidate.start()].strip(" ;；") + continuation
+                break
     if not tail:
         return None
-    major_name = text[: tail.start()].strip(" ;；")
     if not major_name:
         return None
     return CatalogPlan(
         year=year,
         school_code=school_code,
-        school_name=school_name,
+        school_name=_clean_school_heading(school_name),
         major_code=major_code,
         major_name=major_name,
         subject_requirement=re.sub(r"\s+", "+", tail.group("subject")),
@@ -94,6 +111,7 @@ def extract_catalog(path: Path, year: int) -> tuple[list[CatalogPlan], dict[str,
     plans: list[CatalogPlan] = []
     current_school_code: str | None = None
     current_school_name = ""
+    awaiting_school_continuation = False
     current_major_code: str | None = None
     buffer: list[str] = []
     buffer_page = 0
@@ -123,23 +141,40 @@ def extract_catalog(path: Path, year: int) -> tuple[list[CatalogPlan], dict[str,
         for page_number, raw_page in enumerate(document.pages, start=1):
             page = raw_page.dedupe_chars(tolerance=1)
             halves = [
-                ("left", page.crop((0, 0, page.width / 2, page.height))),
-                ("right", page.crop((page.width / 2, 0, page.width, page.height))),
+                ("left", page.crop((page.width * .065, 0, page.width / 2, page.height))),
+                ("right", page.crop((page.width / 2, 0, page.width * .935, page.height))),
             ]
             for column, half in halves:
                 text = half.extract_text(x_tolerance=2, y_tolerance=3) or ""
+                in_note = False
                 for raw_line in text.splitlines():
                     line = _clean(raw_line)
+                    if line.startswith("["):
+                        in_note = "]" not in line
+                        continue
+                    if in_note:
+                        in_note = "]" not in line
+                        continue
                     if _is_noise(line):
                         continue
                     school_match = SCHOOL_LINE.match(line)
-                    if school_match:
+                    if school_match and re.search(r"大学|学院|学校|研究院", school_match.group("name")):
                         flush()
                         current_school_code = school_match.group("code")
                         current_school_name = school_match.group("name")
+                        awaiting_school_continuation = True
+                        continue
+                    # Long institution names as well as locations can wrap.
+                    # Continue only between a verified heading and its first major.
+                    if (current_school_code and awaiting_school_continuation
+                            and not MAJOR_START.match(line)
+                            and re.search(r"[\u4e00-\u9fff]", line)
+                            and not re.search(r"\d", line)):
+                        current_school_name += line
                         continue
                     major_match = MAJOR_START.match(line)
                     if major_match and current_school_code:
+                        awaiting_school_continuation = False
                         flush()
                         current_major_code = major_match.group("code")
                         buffer = [major_match.group("body")]
@@ -154,6 +189,7 @@ def extract_catalog(path: Path, year: int) -> tuple[list[CatalogPlan], dict[str,
                             flush()
             # A major record never legitimately spans a physical page.
             flush()
+            raw_page.close()
         flush()
 
     unique: dict[tuple[str, str], CatalogPlan] = {}

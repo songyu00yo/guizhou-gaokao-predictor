@@ -1,0 +1,228 @@
+{
+  "documents": [
+    {
+      "school": "哈尔滨医科大学",
+      "year": 2026,
+      "kind": "charter",
+      "url": "https://www.hrbmu.edu.cn/zhaosheng/info/1141/2766.htm",
+      "title": "哈尔滨医科大学2026年本科招生章程",
+      "expected_phrases": [
+        "2026年本科招生章程",
+        "发展和改革委员会"
+      ],
+      "scope": "普通本科招生章程；收费按章程指向执行，未从章程抽取逐专业金额。",
+      "published_at": null,
+      "cache_path": "data/raw/collections/north/哈尔滨医科大学-2026-charter.html",
+      "fees_rows": [],
+      "source_url": "https://www.hrbmu.edu.cn/zhaosheng/info/1141/2766.htm",
+      "source_year": 2026,
+      "license": "高校公开网页",
+      "fetched_at": 1792742104,
+      "sha256": "990303a949fb72c2996f427c766952345162a7cff893f9be1a580db11c9f241b",
+      "bytes": 39229,
+      "identity_verified": true
+    },
+    {
+      "school": "山西农业大学",
+      "year": 2026,
+      "kind": "charter",
+      "url": "https://zsb.sxau.edu.cn/info/1018/1879.htm",
+      "title": "山西农业大学2026年普通本科招生章程",
+      "expected_phrases": [
+        "2026年普通本科招生章程",
+        "收费标准严格执行"
+      ],
+      "scope": "普通本科招生章程；收费按章程指向执行，未从章程抽取逐专业金额。",
+      "published_at": null,
+      "cache_path": "data/raw/collections/north/山西农业大学-2026-charter.html",
+      "fees_rows": [],
+      "source_url": "https://zsb.sxau.edu.cn/info/1018/1879.htm",
+      "source_year": 2026,
+      "license": "高校公开网页",
+      "fetched_at": 1792742109,
+      "sha256": "4405da409ff60b5ed2851a46f7a9a189a0dd69f310ce1982f8fed23d6c466a76",
+      "bytes": 58345,
+      "identity_verified": true
+    },
+    {
+      "school": "山西财经大学",
+      "year": 2026,
+      "kind": "charter",
+      "url": "https://zhaosheng.sxufe.edu.cn/info/1008/7186.htm",
+      "title": "山西财经大学2026年普通全日制本科招生章程",
+      "expected_phrases": [
+        "2026年普通全日制本科招生章程",
+        "视觉传达设计专业学费"
+      ],
+      "scope": "普通本科招生章程；收费按章程指向执行，未从章程抽取逐专业金额。",
+      "published_at": null,
+      "cache_path": "data/raw/collections/north/山西财经大学-2026-charter.html",
+      "fees_rows": [],
+      "source_url": "https://zhaosheng.sxufe.edu.cn/info/1008/7186.htm",
+      "source_year": 2026,
+      "license": "高校公开网页",
+      "fetched_at": 1792742109,
+      "sha256": "092a4db4fe33f8dc11ad5377f5dde3a7a9c9b6dae1d7b49b1edfdac5e81bf596",
+      "bytes": 31569,
+      "identity_verified": true
+    },
+    {
+      "school": "山东交通学院",
+      "year": 2026,
+      "kind": "charter",
+      "url": "https://zsw.sdjtu.edu.cn/zyjs/bk.htm",
+      "title": "山东交通学院2026年普通高等教育招生章程",
+      "expected_phrases": [
+        "2026年普通高等教育本科招生工作",
+        "鲁发改价格〔2026〕290号"
+      ],
+      "scope": "普通本科招生章程；收费按章程指向执行，未从章程抽取逐专业金额。",
+      "published_at": null,
+      "cache_path": "data/raw/collections/north/山东交通学院-2026-charter.html",
+      "fees_rows": [],
+      "source_url": "https://zsw.sdjtu.edu.cn/zyjs/bk.htm",
+      "source_year": 2026,
+      "license": "高校公开网页",
+      "fetched_at": 1792742109,
+      "sha256": "a605a04f455075cdbdecb82bf35fc7446f09e6adfdae1f7fe8923c3282fc5e0a",
+      "bytes": 39801,
+      "identity_verified": true
+    },
+    {
+      "school": "齐鲁工业大学",
+      "year": 2026,
+      "kind": "charter",
+      "url": "https://zsb.qlu.edu.cn/article/1193",
+      "title": "齐鲁工业大学2026年普通高等教育招生章程",
+      "expected_phrases": [
+        "2026年普通本科招生工作的顺利进行",
+        "鲁发改价格〔2026〕290号"
+      ],
+      "scope": "普通本科招生章程；收费按章程指向执行，未从章程抽取逐专业金额。",
+      "published_at": null,
+      "cache_path": "data/raw/collections/north/齐鲁工业大学-2026-charter.html",
+      "fees_rows": [],
+      "source_url": "https://zsb.qlu.edu.cn/article/1193",
+      "source_year": 2026,
+      "license": "高校公开网页",
+      "fetched_at": 1792742110,
+      "sha256": "918cd4956157a649808461e3a6f847b5b0bc80102c0111c6ec60948cc4e9a8e8",
+      "bytes": 27280,
+      "identity_verified": true
+    },
+    {
+      "school": "内蒙古科技大学包头师范学院",
+      "year": 2026,
+      "kind": "charter",
+      "url": "https://wxy.bttc.edu.cn/info/1112/5261.htm",
+      "title": "内蒙古科技大学包头师范学院2026年本科招生章程",
+      "expected_phrases": [
+        "2026年招生工作的顺利进行",
+        "收费标准以内蒙古自治区价格主管部门公布"
+      ],
+      "scope": "普通本科招生章程；收费按章程指向执行，未从章程抽取逐专业金额。",
+      "published_at": null,
+      "cache_path": "data/raw/collections/north/内蒙古科技大学包头师范学院-2026-charter.html",
+      "fees_rows": [],
+      "source_url": "https://wxy.bttc.edu.cn/info/1112/5261.htm",
+      "source_year": 2026,
+      "license": "高校公开网页",
+      "fetched_at": 1792742110,
+      "sha256": "7d7b2543ddc49764da85b0ecd9cef4b08bb0b7d0afbf38184ec898932b02c092",
+      "bytes": 19821,
+      "identity_verified": true
+    },
+    {
+      "school": "天津医科大学",
+      "year": 2025,
+      "kind": "charter",
+      "url": "https://www.tmu.edu.cn/bkzs/main.htm",
+      "title": "天津医科大学2025年普通本科招生章程",
+      "expected_phrases": [
+        "2025年普通本科招生章程"
+      ],
+      "scope": "普通本科招生章程；收费按章程指向执行，未从章程抽取逐专业金额。",
+      "published_at": null,
+      "cache_path": "data/raw/collections/north/天津医科大学-2025-charter.html",
+      "fees_rows": [],
+      "source_url": "https://www.tmu.edu.cn/bkzs/main.htm",
+      "source_year": 2025,
+      "license": "高校公开网页",
+      "fetched_at": 1792742110,
+      "sha256": "d0f7a3b210f556219b0015001e2b3ef2bc6c6c86f196a6363324b7f9ed66429c",
+      "bytes": 112528,
+      "identity_verified": true
+    },
+    {
+      "school": "内蒙古科技大学包头医学院",
+      "year": 2026,
+      "kind": "charter",
+      "url": "https://www.btmc.edu.cn/zsxxw/info/1263/2636.htm",
+      "title": "内蒙古科技大学包头医学院2026年普通本科招生章程",
+      "expected_phrases": [
+        "学费收费标准按照内蒙古自治区价格主管部门公布的标准执行"
+      ],
+      "scope": "普通本科招生章程；收费依自治区公布标准，未列逐专业金额。",
+      "published_at": null,
+      "cache_path": "data/raw/collections/north/内蒙古科技大学包头医学院-2026-charter.html",
+      "fees_rows": [],
+      "source_url": "https://www.btmc.edu.cn/zsxxw/info/1263/2636.htm",
+      "source_year": 2026,
+      "license": "高校官网公开信息",
+      "fetched_at": 1792742269,
+      "sha256": "32afad85ab4b3b9d9b838ad572f9bb72b8fadad6724c6a6bae5cd2b2f2dc4fcf",
+      "bytes": 47960,
+      "identity_verified": true
+    },
+    {
+      "school": "吉林农业大学",
+      "year": 2026,
+      "kind": "fees",
+      "url": "https://jcc.jlau.edu.cn/info/1017/1270.htm",
+      "title": "吉林农业大学2026年学费标准公示",
+      "expected_phrases": [
+        "吉林农业大学2026年学费标准公示",
+        "2026年学费标准进行公示"
+      ],
+      "scope": "官方收费公示公告；本科专业费率附件下载需验证码，未取得全文。",
+      "published_at": null,
+      "cache_path": "data/raw/collections/north/吉林农业大学-2026-fees.html",
+      "fees_rows": [],
+      "source_url": "https://jcc.jlau.edu.cn/info/1017/1270.htm",
+      "source_year": 2026,
+      "license": "高校官网公开信息",
+      "fetched_at": 1792742269,
+      "sha256": "47156fedcd7a1d891b1ae2aecbae718f7208092ef766dc38c980bb41efebe36a",
+      "bytes": 21292,
+      "identity_verified": true
+    }
+  ],
+  "errors": [
+    {
+      "school": "吉林农业大学",
+      "url": "https://gaokao.chsi.com.cn/zsgs/zhangcheng/listVerifedZszc--method-view%2CschId-161%2CinfoId-7616827731.dhtml",
+      "error": "离线缓存不存在：吉林农业大学-2026-charter.html"
+    },
+    {
+      "school": "吉林化工大学",
+      "url": "https://gaokao.chsi.com.cn/zsgs/zhangcheng/listVerifedZszc--method-view%2CschId-160%2CinfoId-7624337335.dhtml",
+      "error": "离线缓存不存在：吉林化工大学-2026-charter.html"
+    },
+    {
+      "school": "吉林农业大学",
+      "year": 2026,
+      "url": "https://jcc.jlau.edu.cn/system/_content/download.jsp?urltype=news.DownloadAttachUrl&owner=1647426860&wbfileid=12151064",
+      "error": "收费公示公告列出本科专业学费PDF附件，但下载返回需验证码的附件下载页面；未绕过，无法核验附件全文，未录费率。"
+    },
+    {
+      "school": "吉林化工大学",
+      "year": 2026,
+      "error": "2025年6月更名后，当前名称吉林化工大学。本轮未找到可直接访问的官方普通本科招生章程/收费公示全文；阳光高考页曾HTTP 412，未绕过。"
+    },
+    {
+      "school": "天津医科大学",
+      "year": 2026,
+      "error": "本科招生网可检索到2025年普通本科招生章程，未发现2026年普通本科招生章程或收费公示；保留历史资料，不推断2026费率。"
+    }
+  ]
+}

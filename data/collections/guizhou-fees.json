@@ -1,0 +1,622 @@
+{
+  "schema_version": 1,
+  "documents": [
+    {
+      "school": "贵州省普通高校（覆盖范围需按招生目录逐校核验）",
+      "year": 2026,
+      "kind": "本科招生专业目录（物理类）",
+      "url": "https://iip.oss-cn-guiyang-gzdata-d01-a.res.gzdata.com.cn/2026/06/22/W0194220_2026.pdf",
+      "title": "贵州省2026年普通高校招生专业目录（物理类）",
+      "expected_phrases": [
+        "贵州省2026年普通高校招生专业目录",
+        "物理类",
+        "学费标准"
+      ],
+      "scope": "贵州省普通高校物理类本科招生目录；目录中学费列为各专业报考参考，不能据此推定目录外专业或其他校区/合作项目",
+      "published_at": null,
+      "cache_path": "data/raw/collections/guizhou/guizhou-physics-catalog-2026.pdf",
+      "sha256": "e64abbe1634e536cc2e1c0b3d4b7a6a79d7ca94587b8e20cc77dc3cba7ddaa1e",
+      "retrieved_at": "2026-10-23T02:30:18.142749+00:00",
+      "fees_rows": [],
+      "verification_note": "已复用官方PDF并校验SHA-256；本轮未能完成PDF正文逐页提取与逐专业证据摘录，故不将处理后计划表学费直接升级为官方收费证据。"
+    },
+    {
+      "school": "贵州民族大学",
+      "year": 2026,
+      "kind": "charter",
+      "url": "https://zsxxw.gzmu.edu.cn/zszc/content_84765",
+      "title": "贵州民族大学2026年普通本科招生章程",
+      "expected_phrases": [
+        "贵州民族大学2026年普通本科招生章程",
+        "2026"
+      ],
+      "scope": "2026普通本科招生章程/学校学费住宿费公示；仅适用正文列明招生类别及收费项目，不替代逐专业收费表。",
+      "published_at": null,
+      "cache_path": "data/raw/collections/guizhou/01-贵州民族大学-2026-charter.html",
+      "sha256": "e266a192d4f0070765268fec340b04a57b000e60165bafb843acc3285af41cf8",
+      "retrieved_at": "2026-10-23T07:58:25Z",
+      "fees_rows": []
+    },
+    {
+      "school": "贵州师范学院",
+      "year": 2026,
+      "kind": "charter",
+      "url": "https://zs.gznc.edu.cn/info/1018/2973.htm",
+      "title": "贵州师范学院2026年普通本科招生章程",
+      "expected_phrases": [
+        "贵州师范学院2026年普通本科招生章程",
+        "2026"
+      ],
+      "scope": "2026普通本科招生章程/学校学费住宿费公示；仅适用正文列明招生类别及收费项目，不替代逐专业收费表。",
+      "published_at": null,
+      "cache_path": "data/raw/collections/guizhou/02-贵州师范学院-2026-charter.html",
+      "sha256": "ebe84dc0729b23940f694250dace7412f9e066b01a4c0d28d15e62b63df0bd91",
+      "retrieved_at": "2026-10-23T07:58:26Z",
+      "fees_rows": []
+    },
+    {
+      "school": "贵州医科大学",
+      "year": 2026,
+      "kind": "fees_notice",
+      "url": "https://cwc.gmc.edu.cn/info/1011/1754.htm",
+      "title": "2026年贵州医科大学学费、住宿费公示",
+      "expected_phrases": [
+        "2026年贵州医科大学学费、住宿费公示",
+        "2026"
+      ],
+      "scope": "2026普通本科招生章程/学校学费住宿费公示；仅适用正文列明招生类别及收费项目，不替代逐专业收费表。",
+      "published_at": null,
+      "cache_path": "data/raw/collections/guizhou/03-贵州医科大学-2026-fees_notice.html",
+      "sha256": "31d13bfcabf0b9a49c27ee86d6835787c2839958651c7661d66e902ac4979725",
+      "retrieved_at": "2026-10-23T07:58:26Z",
+      "fees_rows": []
+    },
+    {
+      "school": "贵州理工学院",
+      "year": 2026,
+      "kind": "charter",
+      "url": "https://www.git.edu.cn/zs/info/1015/3319.htm",
+      "title": "贵州理工学院2026年普通本科招生章程",
+      "expected_phrases": [
+        "贵州理工学院2026年普通本科招生章程",
+        "2026"
+      ],
+      "scope": "2026普通本科招生章程/学校学费住宿费公示；仅适用正文列明招生类别及收费项目，不替代逐专业收费表。",
+      "published_at": null,
+      "cache_path": "data/raw/collections/guizhou/04-贵州理工学院-2026-charter.html",
+      "sha256": "0a9513639b3891999add5a44f45be7119843e09442b68a5e15c8f17587e3fc04",
+      "retrieved_at": "2026-10-23T07:58:27Z",
+      "fees_rows": []
+    },
+    {
+      "school": "贵阳学院",
+      "year": 2026,
+      "kind": "charter",
+      "url": "https://www.gyu.edu.cn/info/1057/13671.htm",
+      "title": "贵阳学院2026年全日制普通本科招生章程",
+      "expected_phrases": [
+        "贵阳学院2026年全日制普通本科招生章程",
+        "2026"
+      ],
+      "scope": "2026普通本科招生章程/学校学费住宿费公示；仅适用正文列明招生类别及收费项目，不替代逐专业收费表。",
+      "published_at": null,
+      "cache_path": "data/raw/collections/guizhou/05-贵阳学院-2026-charter.html",
+      "sha256": "6505badded398d49b1cc4700f364ff05a990fcc43a999bec58a1e6b894a02130",
+      "retrieved_at": "2026-10-23T07:58:27Z",
+      "fees_rows": []
+    },
+    {
+      "school": "遵义医科大学",
+      "year": 2026,
+      "kind": "charter",
+      "url": "https://zyzb.zmu.edu.cn/axzdoc/2026061054846.html",
+      "title": "遵义医科大学2026年本科招生章程",
+      "expected_phrases": [
+        "遵义医科大学2026年本科招生章程",
+        "2026"
+      ],
+      "scope": "2026普通本科招生章程/学校学费住宿费公示；仅适用正文列明招生类别及收费项目，不替代逐专业收费表。",
+      "published_at": null,
+      "cache_path": "data/raw/collections/guizhou/06-遵义医科大学-2026-charter.html",
+      "sha256": "b1ff085a064feea7323375470993e9c20956b898da7e9185e1348d1ecbfee5c0",
+      "retrieved_at": "2026-10-23T07:58:28Z",
+      "fees_rows": []
+    },
+    {
+      "school": "贵州医科大学",
+      "year": 2026,
+      "kind": "fees",
+      "url": "https://cwc.gmc.edu.cn/system/_content/download.jsp?urltype=news.DownloadAttachUrl&owner=837443446&wbfileid=18215526",
+      "title": "贵州医科大学关于2026年各专业学费、住宿收费标准的通知",
+      "expected_phrases": [
+        "贵州医科大学",
+        "2026年",
+        "学费",
+        "住宿收费标准"
+      ],
+      "scope": "贵州医科大学2026本科生按专业的学费标准；附件的住宿收费按房型/项目另列，本轮未抄录住宿费。",
+      "published_at": null,
+      "cache_path": "data/raw/collections/guizhou/07-贵州医科大学-2026学费住宿收费标准.pdf",
+      "sha256": "92a4817f3daf7ded3bebb3131c52520c7b0f96a284296e056ab1d223630eeb61",
+      "retrieved_at": "2026-10-23T07:58:47Z",
+      "fees_rows": [
+        {
+          "major": "健康服务与管理",
+          "tuition": 4100,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "健康服务与管理 | 4100元/年",
+          "source_page": 3
+        },
+        {
+          "major": "思想政治教育",
+          "tuition": 4100,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "思想政治教育 | 4100元/年",
+          "source_page": 3
+        },
+        {
+          "major": "英语",
+          "tuition": 4100,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "英语 | 4100元/年",
+          "source_page": 3
+        },
+        {
+          "major": "翻译",
+          "tuition": 4100,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "翻译 | 4100元/年",
+          "source_page": 3
+        },
+        {
+          "major": "法学",
+          "tuition": 4100,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "法学 | 4100元/年",
+          "source_page": 3
+        },
+        {
+          "major": "应用心理学",
+          "tuition": 4100,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "应用心理学 | 4100元/年",
+          "source_page": 3
+        },
+        {
+          "major": "市场营销",
+          "tuition": 4100,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "市场营销 | 4100元/年",
+          "source_page": 3
+        },
+        {
+          "major": "公共事业管理",
+          "tuition": 4100,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "公共事业管理 | 4100元/年",
+          "source_page": 3
+        },
+        {
+          "major": "运动训练",
+          "tuition": 4100,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "运动训练 | 4100元/年",
+          "source_page": 3
+        },
+        {
+          "major": "社会体育指导与管理",
+          "tuition": 4100,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "社会体育指导与管理 | 4100元/年",
+          "source_page": 3
+        },
+        {
+          "major": "休闲体育",
+          "tuition": 4100,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "休闲体育 | 4100元/年",
+          "source_page": 3
+        },
+        {
+          "major": "健康与医疗保障",
+          "tuition": 4100,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "健康与医疗保障 | 4100元/年",
+          "source_page": 3
+        },
+        {
+          "major": "康复治疗学",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "康复治疗学 | 4200元/年",
+          "source_page": 3
+        },
+        {
+          "major": "康复治疗学(中高计划)",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "康复治疗学(中高计划) | 4200元/年",
+          "source_page": 3
+        },
+        {
+          "major": "食品科学与工程",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "食品科学与工程 | 4200元/年",
+          "source_page": 3
+        },
+        {
+          "major": "食品质量与安全",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "食品质量与安全 | 4200元/年",
+          "source_page": 3
+        },
+        {
+          "major": "食品卫生与营养学",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "食品卫生与营养学 | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "食品卫生与营养学(中高计划)",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "食品卫生与营养学(中高计划) | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "卫生检验与检疫",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "卫生检验与检疫 | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "护理学",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "护理学 | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "助产学",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "助产学 | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "医学实验技术",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "医学实验技术 | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "化学生物学",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "化学生物学 | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "生物技术",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "生物技术 | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "生物技术(中高计划)",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "生物技术(中高计划) | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "医学信息工程",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "医学信息工程 | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "数据科学与大数据技术",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "数据科学与大数据技术 | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "生物医学工程",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "生物医学工程 | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "智能医学工程",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "智能医学工程 | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "智能影像工程",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "智能影像工程 | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "药学",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "药学 | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "药物制剂",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "药物制剂 | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "临床药学",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "临床药学 | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "中药学",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "中药学 | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "中草药栽培与鉴定",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "中草药栽培与鉴定 | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "应用化学",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "应用化学 | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "医学检验技术",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "医学检验技术 | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "医学影像技术",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "医学影像技术 | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "教育技术学",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "教育技术学 | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "药事管理",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "药事管理 | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "运动康复",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "运动康复 | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "化妆品科学与技术",
+          "tuition": 4200,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "化妆品科学与技术 | 4200元/年",
+          "source_page": 4
+        },
+        {
+          "major": "儿科学",
+          "tuition": 4500,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "儿科学 | 4500元/年",
+          "source_page": 4
+        },
+        {
+          "major": "法医学",
+          "tuition": 4500,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "法医学 | 4500元/年",
+          "source_page": 4
+        },
+        {
+          "major": "预防医学",
+          "tuition": 4500,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "预防医学 | 4500元/年",
+          "source_page": 4
+        },
+        {
+          "major": "妇幼保健医学",
+          "tuition": 4500,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "妇幼保健医学 | 4500元/年",
+          "source_page": 4
+        },
+        {
+          "major": "基础医学",
+          "tuition": 4500,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "基础医学 | 4500元/年",
+          "source_page": 4
+        },
+        {
+          "major": "口腔医学",
+          "tuition": 4500,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "口腔医学 | 4500元/年",
+          "source_page": 4
+        },
+        {
+          "major": "临床医学",
+          "tuition": 4500,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "临床医学 | 4500元/年",
+          "source_page": 4
+        },
+        {
+          "major": "临床医学(协和班)",
+          "tuition": 4500,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "临床医学(协和班) | 4500元/年",
+          "source_page": 4
+        },
+        {
+          "major": "眼视光医学",
+          "tuition": 4500,
+          "currency": "CNY",
+          "unit": "元/年",
+          "scope": "2026年秋季入学起本科生收费表；保留原文专业及培养项目名称，不推广校区",
+          "evidence_text": "眼视光医学 | 4500元/年",
+          "source_page": 4
+        }
+      ],
+      "source_page": null,
+      "verified_transcript_path": "data/collections/verified/guizhou-medical-fees-2026.json",
+      "verified_transcript_sha256": "fb1c4132afb68df10b9c51dd108070d1a7ce2f102aa7989b773017019ad5186b"
+    }
+  ],
+  "gaps": [
+    {
+      "school": "贵州财经大学",
+      "reason": "本轮未找到可下载并核验的该校2026本科收费/招生原文。"
+    },
+    {
+      "school": "贵州师范大学",
+      "reason": "本轮未找到可下载并核验的该校2026本科收费/招生原文。"
+    },
+    {
+      "school": "贵州商学院",
+      "reason": "本轮未找到可下载并核验的该校2026本科收费/招生原文。"
+    }
+  ]
+}

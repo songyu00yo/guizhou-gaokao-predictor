@@ -1,0 +1,59 @@
+{
+  "sources": [
+    {
+      "school": "贵州大学",
+      "title": "贵州大学2026年本科招生章程",
+      "url": "https://rso.gzu.edu.cn/2026/0521/c23586a277610/page.htm",
+      "year": 2026,
+      "kind": "charter",
+      "expected_phrases": [
+        "贵州大学2026年本科招生章程"
+      ],
+      "published_at": null
+    },
+    {
+      "school": "贵州大学",
+      "title": "贵州大学2026年本科学费收费标准",
+      "url": "https://www.gzu.edu.cn/2026/0609/c17518a275540/page.htm",
+      "year": 2026,
+      "kind": "fees",
+      "expected_phrases": [
+        "贵州大学2026年本科学费收费标准"
+      ],
+      "published_at": null
+    },
+    {
+      "school": "铜仁学院",
+      "title": "铜仁学院2026年本科招生章程",
+      "url": "https://www.gztrc.edu.cn/zsyjyzdc/info/1101/5427.htm",
+      "year": 2026,
+      "kind": "charter",
+      "expected_phrases": [
+        "铜仁学院2026年本科招生章程"
+      ],
+      "published_at": null
+    },
+    {
+      "school": "凯里学院",
+      "title": "凯里学院2026年普通本科招生章程",
+      "url": "https://adweb.kluniv.edu.cn/info/1075/2149.htm",
+      "year": 2026,
+      "kind": "charter",
+      "expected_phrases": [
+        "凯里学院2026年普通本科招生章程"
+      ],
+      "published_at": null
+    },
+    {
+      "school": "贵州财经大学",
+      "title": "贵州财经大学2026年普通本科招生章程",
+      "url": "https://gaokao.chsi.com.cn/zsgs/zhangcheng/listVerifedZszc--method-view%2CschId-521%2CinfoId-7634674727.dhtml",
+      "year": 2026,
+      "kind": "charter",
+      "expected_phrases": [
+        "贵州财经大学2026年普通本科招生章程"
+      ],
+      "published_at": null
+    }
+  ]
+}

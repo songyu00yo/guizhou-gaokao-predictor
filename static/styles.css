@@ -4526,3 +4526,1385 @@ button:active,
     animation: none !important;
   }
 }
+
+/* ==========================================================================
+   华丽动效层（2026-10 增补）：沿用原配色与排版，只叠加动画。
+   - 循环动画全部写在 prefers-reduced-motion: no-preference 里
+   - 系统开启“减少动态效果”时，本节动画全部关闭
+   ========================================================================== */
+:root {
+  --ease-spring: cubic-bezier(.34, 1.56, .64, 1);
+  --ease-out-expo: cubic-bezier(.16, 1, .3, 1);
+  --glow-blue: 0 0 0 1px rgba(21, 88, 176, .18), 0 14px 34px rgba(21, 88, 176, .18);
+}
+
+/* ---------- 分数输入页 ---------- */
+.score-gate {
+  overflow: hidden;
+}
+.gate-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.gate-glow i {
+  position: absolute;
+  width: 520px;
+  height: 520px;
+  border-radius: 50%;
+  opacity: .55;
+}
+.gate-glow i:nth-child(1) { top: -180px; left: -120px; background: radial-gradient(circle, rgba(21, 88, 176, .16), transparent 65%); }
+.gate-glow i:nth-child(2) { right: -160px; bottom: -200px; background: radial-gradient(circle, rgba(21, 88, 176, .12), transparent 65%); }
+.gate-glow i:nth-child(3) { top: 30%; left: 55%; width: 360px; height: 360px; background: radial-gradient(circle, rgba(21, 88, 176, .08), transparent 65%); }
+.score-gate-panel {
+  position: relative;
+  animation: gatePanelIn 900ms var(--ease-spring) both;
+}
+.score-gate-copy > *,
+.score-gate-field,
+.score-gate-submit {
+  animation: riseFade 700ms var(--ease-out-expo) both;
+}
+.score-gate-copy > :nth-child(1) { animation-delay: 180ms; }
+.score-gate-copy > :nth-child(2) { animation-delay: 260ms; }
+.score-gate-copy > :nth-child(3) { animation-delay: 340ms; }
+.score-gate-field { animation-delay: 420ms; }
+.score-gate-submit { animation-delay: 500ms; }
+.score-gate-field input {
+  transition: border-color 220ms var(--ease-out), box-shadow 420ms var(--ease-out);
+}
+.score-gate-field input:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 5px rgba(21, 88, 176, .14), 0 0 0 12px rgba(21, 88, 176, .05);
+}
+.score-gate-submit,
+.primary-action {
+  position: relative;
+  overflow: hidden;
+}
+.score-gate-submit:hover,
+.primary-action:hover {
+  box-shadow: 0 12px 28px rgba(21, 88, 176, .32);
+  transform: translate3d(0, -2px, 0);
+}
+
+/* ---------- 5 秒开场 ---------- */
+.entry-loader {
+  overflow: hidden;
+  transition: opacity 600ms var(--ease-out);
+}
+.entry-loader-panel {
+  position: relative;
+  z-index: 1;
+  justify-items: center;
+  text-align: center;
+  transition: transform 600ms var(--ease-out);
+}
+.entry-loader[data-visible="false"] .entry-loader-panel {
+  transform: scale(1.06);
+}
+.entry-loader-panel > span {
+  animation: riseFade 600ms var(--ease-out-expo) 100ms both;
+}
+.entry-loader[data-visible="true"] h2 {
+  animation: riseFade 800ms var(--ease-out-expo) 220ms both;
+}
+.entry-loader-panel p {
+  animation: riseFade 800ms var(--ease-out-expo) 380ms both;
+}
+.entry-baseline { animation: entryRule 900ms var(--ease-out) 200ms both; }
+.entry-line { stroke-width: 3; animation: entryDraw 2600ms cubic-bezier(.65, 0, .35, 1) 400ms forwards; }
+.entry-node { transform-box: fill-box; transform-origin: center; animation: nodePop 600ms var(--ease-spring) both; }
+.node-one { animation-delay: 500ms; }
+.node-two { animation-delay: 1300ms; }
+.node-three { animation-delay: 2100ms; }
+.node-four { animation-delay: 2900ms; }
+.entry-comet {
+  fill: #fff;
+  stroke: var(--blue);
+  stroke-width: 2.5;
+  opacity: 0;
+  animation: fadeOnly 400ms var(--ease-out) 3000ms forwards;
+}
+.entry-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.entry-steps li {
+  position: relative;
+  padding: 10px 8px 10px 28px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .8);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: left;
+  opacity: .35;
+  animation: stepOn 500ms var(--ease-out) forwards, stepDone 400ms var(--ease-out) forwards;
+}
+.entry-steps li::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  width: 10px;
+  height: 10px;
+  margin-top: -5px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+.entry-steps li:nth-child(1) { animation-delay: 400ms, 1500ms; }
+.entry-steps li:nth-child(2) { animation-delay: 1500ms, 2700ms; }
+.entry-steps li:nth-child(3) { animation-delay: 2700ms, 3900ms; }
+.entry-steps li:nth-child(4) { animation-delay: 3900ms, 4800ms; }
+.entry-progress {
+  width: 100%;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(21, 88, 176, .1);
+}
+.entry-progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--blue);
+  transform-origin: left;
+  transform: scaleX(0);
+  animation: progressFill 4800ms cubic-bezier(.45, .05, .25, 1) 200ms forwards;
+}
+.entry-numbers {
+  font-size: 34px;
+  font-weight: 900;
+  animation: popScale 700ms var(--ease-spring) 600ms both;
+}
+.entry-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.entry-particles i {
+  position: absolute;
+  bottom: -20px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(21, 88, 176, .55), rgba(21, 88, 176, 0) 70%);
+  opacity: 0;
+}
+.entry-particles i:nth-child(3n) { width: 12px; height: 12px; }
+.entry-particles i:nth-child(1) { left: 4%; animation-delay: 0s; }
+.entry-particles i:nth-child(2) { left: 10%; animation-delay: 1.2s; }
+.entry-particles i:nth-child(3) { left: 17%; animation-delay: .4s; }
+.entry-particles i:nth-child(4) { left: 23%; animation-delay: 2s; }
+.entry-particles i:nth-child(5) { left: 30%; animation-delay: .8s; }
+.entry-particles i:nth-child(6) { left: 37%; animation-delay: 2.6s; }
+.entry-particles i:nth-child(7) { left: 44%; animation-delay: 1.5s; }
+.entry-particles i:nth-child(8) { left: 51%; animation-delay: .2s; }
+.entry-particles i:nth-child(9) { left: 58%; animation-delay: 2.3s; }
+.entry-particles i:nth-child(10) { left: 65%; animation-delay: 1s; }
+.entry-particles i:nth-child(11) { left: 72%; animation-delay: 3s; }
+.entry-particles i:nth-child(12) { left: 78%; animation-delay: .6s; }
+.entry-particles i:nth-child(13) { left: 84%; animation-delay: 1.8s; }
+.entry-particles i:nth-child(14) { left: 89%; animation-delay: 2.8s; }
+.entry-particles i:nth-child(15) { left: 94%; animation-delay: 1.3s; }
+.entry-particles i:nth-child(16) { left: 98%; animation-delay: .9s; }
+
+/* ---------- 开场结束后整个界面依次入场 ---------- */
+body[data-score-gate="closed"]:not([data-revealed="true"]) .app-topbar,
+body[data-score-gate="closed"]:not([data-revealed="true"]) .decision-shell {
+  visibility: hidden;
+}
+body.is-revealing .app-topbar {
+  animation: dropIn 800ms var(--ease-out-expo) both;
+}
+body[data-revealed="true"] .decision-shell {
+  animation: none;
+}
+body.is-revealing .left-rail > .rail-card {
+  animation: slideFromLeft 900ms var(--ease-out-expo) both;
+  animation-delay: calc(var(--gate-i, 0) * 120ms + 200ms);
+}
+body.is-revealing .center-stage {
+  animation: none;
+}
+body.is-revealing .hero-strip article {
+  animation: popScale 800ms var(--ease-spring) both;
+}
+body.is-revealing .hero-strip article:nth-child(1) { animation-delay: 300ms; }
+body.is-revealing .hero-strip article:nth-child(2) { animation-delay: 380ms; }
+body.is-revealing .hero-strip article:nth-child(3) { animation-delay: 460ms; }
+body.is-revealing .hero-strip article:nth-child(4) { animation-delay: 540ms; }
+body.is-revealing .hero-strip article:nth-child(5) { animation-delay: 620ms; }
+body.is-revealing .hero-strip article:nth-child(6) { animation-delay: 700ms; }
+body.is-revealing .insight-grid > .insight-panel {
+  animation: riseFade 1000ms var(--ease-out-expo) both;
+}
+body.is-revealing .insight-grid > .insight-panel:nth-child(1) { animation-delay: 650ms; }
+body.is-revealing .insight-grid > .insight-panel:nth-child(2) { animation-delay: 800ms; }
+body.is-revealing .right-rail {
+  animation: slideFromRight 1000ms var(--ease-out-expo) 500ms both;
+}
+
+/* ---------- 列表与表格：首帧逐条入场 ---------- */
+.priority-list.is-entering,
+#resultBody.is-entering {
+  animation: none;
+}
+.priority-list.is-entering > .priority-card {
+  animation: cardIn 700ms var(--ease-out-expo) both;
+  animation-delay: calc(min(var(--i, 0), 20) * 45ms + 900ms);
+}
+#resultBody.is-entering > tr {
+  animation: rowIn 600ms var(--ease-out-expo) both;
+  animation-delay: calc(min(var(--i, 0), 24) * 30ms);
+}
+#detailPanel.is-entering {
+  animation: slideFromRight 700ms var(--ease-out-expo) both;
+}
+#detailPanel.is-entering > * {
+  animation: riseFade 700ms var(--ease-out-expo) both;
+}
+#detailPanel.is-entering > :nth-child(2) { animation-delay: 80ms; }
+#detailPanel.is-entering > :nth-child(3) { animation-delay: 140ms; }
+#detailPanel.is-entering > :nth-child(4) { animation-delay: 200ms; }
+#detailPanel.is-entering > :nth-child(5) { animation-delay: 260ms; }
+#detailPanel.is-entering > :nth-child(n+6) { animation-delay: 320ms; }
+.profile-content.is-entering > * {
+  animation: riseFade 700ms var(--ease-out-expo) both;
+}
+.profile-content.is-entering .profile-info-card,
+.profile-content.is-entering .review-card {
+  animation: cardIn 600ms var(--ease-out-expo) both;
+}
+.profile-content.is-entering .profile-info-card:nth-child(n+2) { animation-delay: 60ms; }
+.profile-content.is-entering .profile-info-card:nth-child(n+4) { animation-delay: 120ms; }
+.profile-content.is-entering .profile-info-card:nth-child(n+7) { animation-delay: 180ms; }
+.profile-content.is-entering .profile-info-card:nth-child(n+10) { animation-delay: 240ms; }
+
+/* ---------- 视图切换 ---------- */
+.view.active {
+  animation: viewSwap 560ms var(--ease-out-expo) both;
+}
+
+/* ---------- 悬停：上浮、发光 ---------- */
+.hero-strip article,
+.priority-card,
+.insight-panel,
+.rail-card,
+.info-card,
+.profile-info-card,
+.review-card,
+.source-card {
+  position: relative;
+  overflow: hidden;
+}
+.hero-strip article:hover,
+.priority-card:hover,
+.info-card:hover,
+.profile-info-card:hover,
+.review-card:hover,
+.source-card:hover {
+  transform: translate3d(0, -3px, 0);
+  box-shadow: var(--glow-blue);
+}
+.hero-strip article {
+  transition: transform 420ms var(--ease-spring), box-shadow 320ms var(--ease-out), border-color 200ms var(--ease-out), background-color 200ms var(--ease-out);
+}
+.hero-strip article strong {
+  display: inline-block;
+  transition: transform 420ms var(--ease-spring), color 200ms var(--ease-out);
+}
+.hero-strip article:hover strong {
+  transform: scale(1.08);
+  color: var(--blue);
+}
+.priority-card {
+  transition: transform 420ms var(--ease-spring), box-shadow 320ms var(--ease-out), border-color 200ms var(--ease-out), background-color 200ms var(--ease-out);
+}
+.priority-card .school-logo {
+  transition: transform 520ms var(--ease-spring);
+}
+.priority-card:hover .school-logo,
+.decision-table tbody tr:hover .school-logo {
+  transform: rotate(-8deg) scale(1.12);
+}
+.decision-table .school-logo {
+  transition: transform 520ms var(--ease-spring);
+}
+.decision-table tbody tr.selected-row {
+  box-shadow: inset 4px 0 0 var(--blue);
+}
+.pill {
+  transition: transform 320ms var(--ease-spring);
+}
+tr:hover .pill,
+.priority-card:hover .pill {
+  transform: scale(1.1);
+}
+button:active,
+.row-action:active,
+.replace-btn:active {
+  transform: scale(.94);
+}
+.primary-nav::before {
+  transition:
+    left 520ms var(--ease-spring),
+    width 520ms var(--ease-spring),
+    background-color 200ms var(--ease-out);
+}
+
+/* ---------- 提示条弹出 ---------- */
+.toast:not([hidden]) {
+  animation: toastPop 600ms var(--ease-spring) both;
+}
+
+/* ---------- 循环动画：只在未要求减少动态效果时播放 ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .gate-glow i:nth-child(1) { animation: blobDrift 14s ease-in-out infinite alternate; }
+  .gate-glow i:nth-child(2) { animation: blobDrift 18s ease-in-out -6s infinite alternate-reverse; }
+  .gate-glow i:nth-child(3) { animation: blobDrift 22s ease-in-out -3s infinite alternate; }
+  .entry-particles i { animation: particleRise 5.5s ease-in infinite; }
+}
+
+@keyframes gatePanelIn {
+  0% { opacity: 0; transform: translateY(40px) scale(.9); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes riseFade {
+  from { opacity: 0; transform: translate3d(0, 18px, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes popScale {
+  0% { opacity: 0; transform: scale(.82); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translate3d(0, 16px, 0) scale(.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rowIn {
+  from { opacity: 0; transform: translate3d(-14px, 0, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes dropIn {
+  from { opacity: 0; transform: translate3d(0, -100%, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes slideFromLeft {
+  from { opacity: 0; transform: translate3d(-40px, 0, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes slideFromRight {
+  from { opacity: 0; transform: translate3d(40px, 0, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes viewSwap {
+  from { opacity: 0; transform: translate3d(0, 16px, 0) scale(.99); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes nodePop {
+  0% { opacity: 0; transform: scale(0); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes fadeOnly {
+  to { opacity: 1; }
+}
+@keyframes stepOn {
+  to { opacity: 1; border-color: rgba(21, 88, 176, .45); color: var(--blue); background: var(--blue-soft); }
+}
+@keyframes stepDone {
+  to { opacity: 1; border-color: rgba(22, 134, 90, .4); color: var(--green); background: var(--green-soft); }
+}
+@keyframes progressFill {
+  0% { transform: scaleX(0); }
+  30% { transform: scaleX(.38); }
+  60% { transform: scaleX(.66); }
+  100% { transform: scaleX(1); }
+}
+@keyframes particleRise {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) scale(.6); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(30px, -105vh, 0) scale(1.4); }
+}
+@keyframes blobDrift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(90px, 60px, 0) scale(1.25); }
+}
+@keyframes toastPop {
+  0% { opacity: 0; transform: translate3d(-50%, 24px, 0) scale(.85); }
+  100% { opacity: 1; transform: translate3d(-50%, 0, 0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gate-glow i,
+  .score-gate-panel,
+  .score-gate-copy > *,
+  .score-gate-field,
+  .score-gate-submit,
+  .entry-loader *,
+  body.is-revealing .app-topbar,
+  body.is-revealing .left-rail > .rail-card,
+  body.is-revealing .hero-strip article,
+  body.is-revealing .insight-grid > .insight-panel,
+  body.is-revealing .right-rail,
+  .priority-list.is-entering > .priority-card,
+  #resultBody.is-entering > tr,
+  #detailPanel.is-entering,
+  #detailPanel.is-entering > *,
+  .profile-content.is-entering > *,
+  .view.active,
+  .toast:not([hidden]) {
+    animation: none !important;
+  }
+  .entry-steps li,
+  .entry-comet { opacity: 1; }
+  .entry-progress i { transform: none; }
+}
+
+/* ---------- 总览：一屏放下（沿用原卡片样式） ---------- */
+@media (min-width: 981px) {
+  /* 只在总览是当前页时生效，否则会盖过 .view 的隐藏规则，导致切不到其他页面 */
+  #view-dashboard.active {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 12px;
+    height: 100%;
+    overflow: hidden;
+  }
+  #view-dashboard .hero-strip {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    min-height: 0;
+  }
+  #view-dashboard .hero-strip article {
+    padding: 10px 12px;
+  }
+  #view-dashboard .hero-strip strong {
+    font-size: 24px;
+  }
+}
+@media (min-width: 981px) and (max-height: 820px) {
+  /* 屏幕太矮时允许中间栏滚动，避免图表被压扁 */
+  #view-dashboard.active {
+    height: auto;
+    min-height: 100%;
+    overflow-y: auto;
+    grid-template-rows: auto 760px;
+  }
+}
+.dash-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 12px;
+  min-height: 0;
+}
+.dash-list {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+  min-height: 0;
+  overflow: hidden;
+}
+.dash-list .priority-list {
+  min-height: 0;
+  max-height: none;
+  height: 100%;
+  overflow-y: auto;
+}
+.dash-side {
+  display: grid;
+  grid-template-rows: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, .85fr);
+  gap: 12px;
+  min-height: 0;
+}
+.dash-card {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 6px;
+  min-height: 0;
+  overflow: hidden;
+}
+.dash-card .chart-box,
+.dash-side .mini-chart#rankTrendMini {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+.dash-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  min-height: 0;
+}
+.dash-tabs {
+  position: relative;
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  justify-self: start;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-soft);
+}
+.dash-tabs button {
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+.dash-tabs button.active {
+  background: var(--paper);
+  color: var(--blue);
+  box-shadow: 0 2px 8px rgba(16, 33, 61, .1);
+}
+.dash-pane {
+  display: none;
+  min-height: 0;
+  overflow: auto;
+}
+.dash-pane.active {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+}
+.dash-pane.pane-entering {
+  animation: riseFade 420ms var(--ease-out-expo) both;
+}
+.dash-pane[data-dash-pane="trend"].active {
+  grid-template-rows: minmax(0, 1fr);
+}
+.dash-pane .segment-table-wrap {
+  max-height: none;
+  min-height: 0;
+  overflow-y: auto;
+}
+.dash-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.chart-card {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  overflow: hidden;
+}
+.dash-card.chart-card {
+  align-content: stretch;
+}
+.chart-box {
+  width: 100%;
+  height: 240px;
+}
+.chart-box.chart-tall {
+  height: 300px;
+}
+.profile-chart-card {
+  margin-bottom: 12px;
+}
+.sources-board .chart-card {
+  grid-column: 1 / -1;
+}
+body.is-revealing .dash-list,
+body.is-revealing .dash-side > * {
+  animation: riseFade 1000ms var(--ease-out-expo) both;
+}
+body.is-revealing .dash-list { animation-delay: 600ms; }
+body.is-revealing .dash-side > :nth-child(1) { animation-delay: 750ms; }
+body.is-revealing .dash-side > :nth-child(2) { animation-delay: 850ms; }
+body.is-revealing .dash-side > :nth-child(3) { animation-delay: 950ms; }
+@media (prefers-reduced-motion: reduce) {
+  body.is-revealing .dash-list,
+  body.is-revealing .dash-side > *,
+  .dash-pane.active {
+    animation: none !important;
+  }
+}
+.chart-card .panel-title {
+  display: grid;
+  gap: 2px;
+}
+.chart-card .panel-title p {
+  max-width: none;
+  margin: 0;
+  text-align: left;
+}
+.sources-board .chart-card {
+  height: auto;
+  min-height: max-content;
+  max-height: none;
+  overflow: visible;
+}
+#chartModel.chart-box {
+  height: 160px;
+}
+
+/* ---------- 左栏：各层把握，填满底部 ---------- */
+@media (min-width: 981px) {
+  .left-rail > .tier-card {
+    flex: 1 1 auto;
+    min-height: max-content;
+    display: grid;
+    grid-template-rows: auto 1fr;
+  }
+}
+.tier-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: space-evenly;
+  gap: 10px 12px;
+}
+.tier-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 8px;
+  align-items: center;
+}
+.tier-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 900;
+}
+.tier-name i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tier-color);
+}
+.tier-name b {
+  margin-left: 2px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+.tier-row > strong {
+  color: var(--tier-color);
+  font-size: 15px;
+  font-weight: 900;
+}
+.tier-bar {
+  grid-column: 1 / -1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(21, 88, 176, .08);
+}
+.tier-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--tier-color);
+  transform-origin: left;
+  transition: width 700ms var(--ease-out-expo);
+}
+.tier-row > small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 11px;
+}
+body.is-revealing .tier-bar i {
+  animation: tierGrow 1100ms var(--ease-out-expo) both;
+  animation-delay: calc(var(--i, 0) * 120ms + 700ms);
+}
+@keyframes tierGrow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.is-revealing .tier-bar i {
+    animation: none !important;
+  }
+}
+.left-rail > .rail-card:nth-child(4) { --gate-i: 3; }
+
+.hero-strip article:first-child::before,
+.hero-strip article:nth-child(2)::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 3px;
+  background: var(--blue);
+}
+
+/* ---------- 模型诊断：数字卡片 + 环形进度 ---------- */
+.dash-pane[data-dash-pane="model"].active {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+.diag-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.diag-stat {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--paper-soft);
+}
+.diag-stat span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+.diag-stat strong {
+  color: var(--blue-deep);
+  font-size: 18px;
+  font-weight: 900;
+}
+.diag-stat small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.dash-pane .chart-box#chartDiag {
+  height: 100%;
+  min-height: 120px;
+}
+
+/* ---------- 左栏只在总览显示，其他页面让出空间 ---------- */
+@media (min-width: 981px) {
+  body:not([data-view="dashboard"]) .left-rail {
+    display: none;
+  }
+  body:not([data-view="dashboard"]) .center-stage {
+    grid-column: 1 / span 2;
+    grid-row: 1;
+  }
+  body:not([data-view="dashboard"]) .right-rail {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .left-rail.rail-entering {
+    animation: slideFromLeft 460ms var(--ease-out-expo) both;
+  }
+}
+@keyframes railOut {
+  to { opacity: 0; transform: translate3d(-40px, 0, 0); }
+}
+
+/* ---------- 志愿推荐表 ---------- */
+#resultBody.is-entering > tr {
+  animation: rowIn 600ms var(--ease-out-expo) both;
+  animation-delay: calc(min(var(--i, 0), 14) * 40ms);
+}
+#resultBody.is-refreshing > tr {
+  animation: rowRefresh 420ms var(--ease-out-expo) both;
+  animation-delay: calc(min(var(--i, 0), 12) * 25ms);
+}
+@keyframes rowRefresh {
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to { opacity: 1; transform: none; }
+}
+#resultBody > tr.row-leaving {
+  animation: rowOut 320ms ease-in forwards;
+}
+@keyframes rowOut {
+  to { opacity: 0; transform: translate3d(40px, 0, 0); }
+}
+#resultBody > tr.row-arrive {
+  animation: rowArrive 700ms var(--ease-out-expo) both;
+}
+@keyframes rowArrive {
+  from { opacity: 0; transform: translate3d(-40px, 0, 0); background-color: var(--blue-soft); }
+  to { opacity: 1; transform: none; }
+}
+.decision-table tbody tr {
+  transition: background-color 260ms var(--ease-out), box-shadow 260ms var(--ease-out);
+}
+.decision-table tbody tr.selected-row td {
+  transition: background-color 260ms var(--ease-out);
+}
+.decision-table thead th {
+  transition: box-shadow 260ms var(--ease-out);
+}
+.table-shell.is-scrolled thead th {
+  box-shadow: 0 6px 12px -8px rgba(16, 33, 61, .25);
+}
+.decision-table .row-action,
+.decision-table .replace-btn {
+  transition: transform 320ms var(--ease-spring), background-color 200ms var(--ease-out), color 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+}
+.decision-table tr:hover .row-action {
+  background: var(--blue);
+  color: #fff;
+}
+.filter-group button {
+  transition: transform 320ms var(--ease-spring), background-color 220ms var(--ease-out), color 220ms var(--ease-out), border-color 220ms var(--ease-out);
+}
+.filter-group button:active {
+  transform: scale(.92);
+}
+@keyframes chipOn {
+  0% { transform: scale(.9); }
+  100% { transform: scale(1); }
+}
+#searchInput {
+  transition: border-color 220ms var(--ease-out), box-shadow 320ms var(--ease-out);
+}
+#searchInput:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 4px rgba(21, 88, 176, .12);
+}
+@media (prefers-reduced-motion: reduce) {
+  .left-rail.rail-entering,
+  #resultBody.is-refreshing > tr,
+  #resultBody > tr.row-leaving,
+  #resultBody > tr.row-arrive,
+  .filter-group button:active {
+    transform: none !important;
+  }
+}
+
+/* ---------- 志愿推荐表：紧凑排版（7 列） ---------- */
+#view-recommend .decision-table.compact-table th:nth-child(n),
+#view-recommend .decision-table.compact-table td:nth-child(n) {
+  text-align: left;
+  vertical-align: middle;
+}
+#view-recommend .decision-table.compact-table th:nth-child(1),
+#view-recommend .decision-table.compact-table td:nth-child(1) { width: 5%; text-align: center; }
+#view-recommend .decision-table.compact-table th:nth-child(2),
+#view-recommend .decision-table.compact-table td:nth-child(2) { width: 25%; }
+#view-recommend .decision-table.compact-table th:nth-child(3),
+#view-recommend .decision-table.compact-table td:nth-child(3) { width: 13%; }
+#view-recommend .decision-table.compact-table th:nth-child(4),
+#view-recommend .decision-table.compact-table td:nth-child(4) { width: 26%; }
+#view-recommend .decision-table.compact-table th:nth-child(5),
+#view-recommend .decision-table.compact-table td:nth-child(5) { width: 11%; }
+#view-recommend .decision-table.compact-table th:nth-child(6),
+#view-recommend .decision-table.compact-table td:nth-child(6) { width: 13%; }
+#view-recommend .decision-table.compact-table th:nth-child(7),
+#view-recommend .decision-table.compact-table td:nth-child(7) { width: 7%; text-align: center; }
+#view-recommend .decision-table.compact-table td {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+.compact-table .order-cell strong {
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 900;
+}
+.compact-table .school-cell {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+.compact-table .school-cell .school-logo {
+  width: 38px;
+  height: 38px;
+}
+.compact-table .cell-title strong {
+  font-size: 14px;
+}
+/* 单元格本身保持 table-cell，内容逐行排列 */
+.compact-table .risk-cell > *,
+.compact-table .plan-cell > * {
+  display: block;
+  margin-top: 3px;
+}
+.compact-table .risk-cell > .pill {
+  display: inline-flex;
+  margin-top: 0;
+}
+.compact-table .plan-cell > :first-child {
+  margin-top: 0;
+}
+.compact-table .risk-cell strong,
+.compact-table .plan-cell strong {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 900;
+}
+.compact-table .risk-cell small,
+.compact-table .plan-cell small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.compact-table .trend-cell {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+.rank-spark {
+  width: 96px;
+  height: 30px;
+  overflow: visible;
+}
+.rank-spark .spark-line {
+  fill: none;
+  stroke: var(--blue);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.rank-spark .spark-forecast {
+  stroke: var(--orange);
+  stroke-width: 2;
+  stroke-dasharray: 3 3;
+}
+.rank-spark .spark-dot {
+  fill: #fff;
+  stroke: var(--blue);
+  stroke-width: 1.6;
+}
+.rank-spark .spark-dot.forecast {
+  fill: var(--orange);
+  stroke: var(--orange);
+}
+.spark-empty {
+  color: var(--muted);
+  font-size: 11px;
+}
+.compact-table .trend-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--ink);
+}
+.compact-table .trend-text span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.compact-table .trend-text b {
+  display: inline-block;
+  min-width: 42px;
+  margin-right: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.compact-table .trend-text em {
+  margin-left: 4px;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 900;
+}
+.compact-table .trend-text small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.trend-up { color: var(--red); }
+.trend-down { color: var(--green); }
+.trend-flat { color: var(--blue); }
+.compact-table .life-cell {
+  display: grid;
+  gap: 4px;
+}
+.compact-table .life-dots {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.compact-table .life-dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(21, 88, 176, .14);
+}
+.compact-table .life-dots i.on {
+  background: var(--green);
+}
+.compact-table .life-dots b {
+  margin-left: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.compact-table .life-tags {
+  display: flex;
+  gap: 4px;
+}
+.compact-table .life-tags span {
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  opacity: .6;
+}
+.compact-table .life-tags span.has {
+  border-color: rgba(22, 134, 90, .35);
+  background: var(--green-soft);
+  color: var(--green);
+  opacity: 1;
+}
+.compact-table .life-cell small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.compact-table .action-cell {
+  display: table-cell;
+}
+.compact-table .action-cell button {
+  display: block;
+  width: 56px;
+  margin: 0 auto;
+}
+.compact-table .action-cell button + button {
+  margin-top: 6px;
+}
+.compact-table .replace-btn {
+  opacity: .55;
+}
+.compact-table tr:hover .replace-btn,
+.compact-table tr.selected-row .replace-btn {
+  opacity: 1;
+}
+.compact-table tbody tr:hover .rank-spark .spark-line {
+  stroke-width: 2.6;
+}
+@media (prefers-reduced-motion: no-preference) {
+  #resultBody.is-entering .rank-spark .spark-line {
+    stroke-dasharray: 200;
+    animation: sparkDraw 900ms var(--ease-out-expo) both;
+  }
+}
+@keyframes sparkDraw {
+  from { stroke-dashoffset: 200; }
+  to { stroke-dashoffset: 0; }
+}
+
+#view-recommend .compact-table .cell-title strong {
+  font-size: 14px;
+  line-height: 1.3;
+}
+#view-recommend .compact-table .cell-title span {
+  font-size: 12px;
+  line-height: 1.35;
+}
+#view-recommend .compact-table .cell-title small {
+  font-size: 11px;
+}
+.compact-table .life-cell small.has-life {
+  color: var(--green);
+  font-weight: 800;
+}
+
+/* ---------- 页面切换：只做一次轻量淡入，不重播开场动画 ---------- */
+.view.active {
+  animation: viewFade 280ms ease-out both;
+}
+@keyframes viewFade {
+  from { opacity: 0; transform: translate3d(0, 6px, 0); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .view.active {
+    animation: none !important;
+  }
+}
+
+/* ---------- 资料说明页：单列排列，卡片按内容撑开，图表不会溢出 ---------- */
+@media (min-width: 981px) {
+  #view-sources .sources-board {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  #view-sources .sources-board > * {
+    flex: 0 0 auto;
+    min-height: auto;
+    height: auto;
+    max-height: none;
+    overflow: hidden;
+  }
+}
+
+/* ---------- 模型方法 ---------- */
+.model-lab {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+.model-lab-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+.model-kicker {
+  display: inline-block;
+  padding: 3px 10px;
+  border: 1px solid var(--blue);
+  border-radius: 999px;
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 900;
+}
+.model-lab-head h2 {
+  margin: 8px 0 6px;
+  color: var(--ink);
+  font-size: 20px;
+  line-height: 1.3;
+}
+.model-lab-head p {
+  margin: 0;
+  color: #31445e;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.model-lab-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.model-lab-stats div {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-soft);
+}
+.model-lab-stats span,
+.model-lab-stats small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.model-lab-stats strong {
+  color: var(--blue-deep);
+  font-size: 20px;
+  font-weight: 900;
+}
+.model-pipeline {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: pipe;
+}
+.model-pipeline li {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  padding: 10px 8px;
+  border: 1px solid rgba(21, 88, 176, .25);
+  border-radius: 8px;
+  background: var(--blue-soft);
+  text-align: center;
+  counter-increment: pipe;
+}
+.model-pipeline li::before {
+  content: counter(pipe);
+  justify-self: center;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+}
+.model-pipeline li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -8px;
+  width: 8px;
+  height: 2px;
+  background: var(--blue);
+}
+.model-pipeline b {
+  color: var(--blue-deep);
+  font-size: 12px;
+}
+.model-pipeline small {
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.35;
+}
+.formula-board {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.formula-tile {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+.formula-tile > span {
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 900;
+}
+.formula-math {
+  overflow-x: auto;
+  padding: 10px 6px;
+  border-radius: 6px;
+  background: var(--paper-soft);
+  color: var(--ink);
+}
+.formula-math math {
+  font-size: 17px;
+}
+.formula-tile p {
+  margin: 0;
+  color: #40536f;
+  font-size: 12px;
+  line-height: 1.65;
+}
+.model-feature-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.model-feature-row > div {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-soft);
+}
+.model-feature-row h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+.model-feature-row p {
+  margin: 0 0 6px;
+  color: #40536f;
+  font-size: 12px;
+  line-height: 1.7;
+}
+@media (max-width: 1399px) {
+  .model-pipeline { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .model-pipeline li:nth-child(4)::after { display: none; }
+  .formula-board,
+  .model-feature-row,
+  .model-lab-head { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* 左栏卡片原有的入场动画只在开场时播放；回到总览时由整个左栏滑入一次 */
+body:not(.is-revealing) .left-rail > .rail-card {
+  animation: none;
+}
+
+/* ---------- 页面转场：旧页退场，新页内容 3D 依次登场 ---------- */
+.center-stage {
+  position: relative;
+  perspective: 1400px;
+}
+.view.view-leaving {
+  animation: viewOut 200ms cubic-bezier(.4, 0, 1, 1) forwards;
+}
+@keyframes viewOut {
+  to { opacity: 0; transform: translate3d(0, -12px, 0) scale(.975); }
+}
+.view.active {
+  animation: none;
+}
+.view.view-entering > *,
+.view.view-entering .hero-strip > article,
+.view.view-entering .dash-grid > .dash-list,
+.view.view-entering .dash-side > *,
+.view.view-entering .profile-content > *,
+.view.view-entering .sources-board > * {
+  transform-origin: 50% 0;
+  animation: viewItemIn 720ms cubic-bezier(.2, .9, .25, 1.08) both;
+}
+.view.view-entering > :nth-child(2) { animation-delay: 60ms; }
+.view.view-entering > :nth-child(3) { animation-delay: 120ms; }
+.view.view-entering > :nth-child(4) { animation-delay: 180ms; }
+.view.view-entering > :nth-child(5) { animation-delay: 240ms; }
+.view.view-entering .hero-strip > article:nth-child(1) { animation-delay: 80ms; }
+.view.view-entering .hero-strip > article:nth-child(2) { animation-delay: 120ms; }
+.view.view-entering .hero-strip > article:nth-child(3) { animation-delay: 160ms; }
+.view.view-entering .hero-strip > article:nth-child(4) { animation-delay: 200ms; }
+.view.view-entering .hero-strip > article:nth-child(5) { animation-delay: 240ms; }
+.view.view-entering .hero-strip > article:nth-child(6) { animation-delay: 280ms; }
+.view.view-entering .dash-grid > .dash-list { animation-delay: 200ms; }
+.view.view-entering .dash-side > :nth-child(1) { animation-delay: 260ms; }
+.view.view-entering .dash-side > :nth-child(2) { animation-delay: 330ms; }
+.view.view-entering .dash-side > :nth-child(3) { animation-delay: 400ms; }
+.view.view-entering .profile-content > :nth-child(2) { animation-delay: 90ms; }
+.view.view-entering .profile-content > :nth-child(n+3) { animation-delay: 170ms; }
+.view.view-entering .sources-board > :nth-child(2) { animation-delay: 90ms; }
+.view.view-entering .sources-board > :nth-child(n+3) { animation-delay: 170ms; }
+.view.view-entering .priority-list > .priority-card:nth-child(-n+8) {
+  animation: viewItemIn 700ms cubic-bezier(.2, .9, .25, 1.08) both;
+  animation-delay: calc(var(--i, 0) * 45ms + 260ms);
+}
+#view-recommend.view-entering #resultBody > tr:nth-child(-n+12) {
+  animation: rowIn 600ms cubic-bezier(.16, 1, .3, 1) both;
+  animation-delay: calc(var(--i, 0) * 35ms + 180ms);
+}
+@keyframes viewItemIn {
+  from { opacity: 0; transform: translate3d(0, 36px, 0) rotateX(14deg) scale(.97); }
+  60% { opacity: 1; }
+  to { opacity: 1; transform: none; }
+}
+@media (min-width: 981px) {
+  .left-rail.rail-leaving {
+    animation: railOut 300ms cubic-bezier(.7, 0, .3, 1) forwards;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .view.view-leaving,
+  .view.view-entering .priority-list > .priority-card,
+  .view.view-entering > *,
+  .view.view-entering .hero-strip > article,
+  .view.view-entering .dash-grid > .dash-list,
+  .view.view-entering .dash-side > *,
+  .view.view-entering .profile-content > *,
+  .view.view-entering .sources-board > *,
+  #view-recommend.view-entering #resultBody > tr,
+  .left-rail.rail-leaving {
+    animation: none !important;
+  }
+}
+
+/* 屏幕外的表格行和志愿卡片先不排版，切换页面时少做很多布局计算 */
+#resultBody > tr:nth-child(n+16),
+.priority-list > .priority-card:nth-child(n+12) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 72px;
+}
+
+/* 数据加载中的占位条：不写“未提供”，避免先显示缺失再跳成有值 */
+.value-loading {
+  display: inline-block;
+  width: 48px;
+  height: 14px;
+  vertical-align: middle;
+  border-radius: 7px;
+  background: linear-gradient(90deg, rgba(21, 88, 176, .08), rgba(21, 88, 176, .18), rgba(21, 88, 176, .08));
+  background-size: 200% 100%;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .value-loading {
+    animation: loadingShimmer 1.2s ease-in-out infinite;
+  }
+}
+@keyframes loadingShimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}

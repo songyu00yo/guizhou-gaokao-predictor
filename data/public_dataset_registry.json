@@ -1,0 +1,81 @@
+{
+  "datasets": [
+    {
+      "dataset": "贵州物理类招生专业目录",
+      "year": 2025,
+      "url": "https://iip.oss-cn-guiyang-gzdata-d01-a.res.gzdata.com.cn/2025/06/23/W0202506231327%E8%B4%B5%E5%B7%9E%E7%9C%812025%E5%B9%B4%E6%99%AE%E9%80%9A%E9%AB%98%E6%A0%A1%E6%8B%9B%E7%94%9F%E4%B8%93%E4%B8%9A%E7%9B%AE%E5%BD%95%EF%BC%88%E7%89%A9%E7%90%86%E7%B1%BB%EF%BC%89.pdf",
+      "status": "downloaded_and_validated",
+      "scope": "在黔招生专业、选科、计划、学费；按页记录来源",
+      "source_file": "2025_physics_catalog.pdf",
+      "pages": 615,
+      "parsed_unique_plans": 26699,
+      "ambiguous_duplicate_keys": 78,
+      "school_count": 2098,
+      "plan_total": 211493
+    },
+    {
+      "dataset": "贵州物理类招生专业目录",
+      "year": 2026,
+      "url": "https://iip.oss-cn-guiyang-gzdata-d01-a.res.gzdata.com.cn/2026/06/22/W0194220_2026.pdf",
+      "status": "downloaded_and_validated",
+      "scope": "在黔招生专业、选科、计划、学费；按页记录来源",
+      "source_file": "2026_physics_catalog.pdf",
+      "pages": 650,
+      "parsed_unique_plans": 27421,
+      "ambiguous_duplicate_keys": 84,
+      "school_count": 2131,
+      "plan_total": 213238
+    },
+    {
+      "dataset": "贵州物理类招生专业目录",
+      "year": 2024,
+      "url": "https://iip.oss-cn-guiyang-gzdata-d01-a.res.gzdata.com.cn/2024/06/24/W0202406241052%E8%B4%B5%E5%B7%9E%E7%9C%812024%E5%B9%B4%E6%99%AE%E9%80%9A%E9%AB%98%E6%A0%A1%E6%8B%9B%E7%94%9F%E4%B8%93%E4%B8%9A%E7%9B%AE%E5%BD%95%EF%BC%88%E7%89%A9%E7%90%86%E7%B1%BB%EF%BC%89.pdf.pdf",
+      "publication_url": "https://www.gzlps.gov.cn/ywdt/bmzx/jt/202406/t20240624_84904824.html",
+      "status": "downloaded_and_validated",
+      "scope": "政府转载的省考试院整册目录",
+      "reason": "政府转载附件404，已找到考试院原始对象存储附件",
+      "sha256": "baae41003ca2280b60879e0a4f0a3b14a4bb7266da74cfbb3d636e17729c1d81",
+      "bytes": 13032218,
+      "source_file": "2024_physics_catalog.pdf",
+      "pages": 582,
+      "parsed_unique_plans": 27632,
+      "ambiguous_duplicate_keys": 25,
+      "school_count": 2117,
+      "plan_total": 205393
+    },
+    {
+      "dataset": "全国本科专业目录",
+      "year": 2026,
+      "url": "https://www.moe.gov.cn/srcsite/A08/moe_1034/s3882/202604/W020260427440749576927.pdf",
+      "publication_url": "https://www.moe.gov.cn/srcsite/A08/moe_1034/s3882/202604/t20260427_1434931.html",
+      "status": "downloaded_and_validated",
+      "records": 883,
+      "scope": "教育部全国专业分类；不代表学校开设或个人报考资格"
+    },
+    {
+      "dataset": "高校生活质量调查",
+      "url": "https://raw.githubusercontent.com/CollegesChat/university-information/079a5070420e14f8db42275d66f33eefab569042/docs/",
+      "source_version": "079a5070420e14f8db42275d66f33eefab569042",
+      "status": "integrated",
+      "scope": "学生反馈，非官方政策，不将其他校区反馈移植"
+    },
+    {
+      "dataset": "中国高校录取/计划数据样例仓库",
+      "url": "https://github.com/HoukChen/gaokao-admission-data",
+      "status": "reference_only",
+      "reason": "公开页面提供样例及商业商城入口，未确认存在可免费复用的完整数据集；不计入数据覆盖"
+    },
+    {
+      "dataset": "629校转专业资料集合",
+      "url": "https://seqmatrix.cloud/transfer.html",
+      "status": "reference_only",
+      "reason": "页面未提供带官方出处、适用年度和明确许可的可下载完整数据，不直接作为已核实政策"
+    },
+    {
+      "dataset": "其他高考数据采集项目",
+      "url": "https://github.com/hewguo/gaokao2025",
+      "status": "reference_only",
+      "reason": "缺少明确开放许可及2026贵州完整来源，不能替代已核实的官方原始资料"
+    }
+  ]
+}

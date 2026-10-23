@@ -4,22 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>贵州高考志愿决策中心（物理类）</title>
-    <link rel="stylesheet" href="/static/styles.css?v=20261023c" />
+    <link rel="stylesheet" href="/static/styles.css?v=20261023r" />
   </head>
-  <body data-score-gate="open">
-    <section class="desktop-required" id="desktopRequired" role="status" aria-live="polite">
-      <div class="desktop-required-panel">
-        <span class="desktop-required-kicker">桌面端体验</span>
-        <h1>建议切换至电脑浏览</h1>
-        <p>志愿推荐表包含多列数据、右侧详情面板和批量筛选，手机屏幕会影响判断效率。请使用电脑或更宽的浏览器窗口查看完整决策系统。</p>
-        <div class="desktop-required-meta">
-          <span>推荐宽度 ≥ 1024px</span>
-          <span>支持键盘与鼠标交互</span>
-        </div>
-      </div>
-    </section>
+  <body data-score-gate="open" data-view="dashboard">
 
     <section class="score-gate" id="scoreGate" aria-labelledby="scoreGateTitle">
+      <div class="gate-glow" aria-hidden="true"><i></i><i></i><i></i></div>
       <form class="score-gate-panel" id="scoreGateForm">
         <div class="score-gate-copy">
           <span>贵州物理类 · 2027 预预测</span>
@@ -105,21 +95,18 @@
             <span id="resourceFreshness">本地资料</span>
           </div>
           <div class="mini-metrics">
-            <div><strong id="resourceFiles">-</strong><span>资料源文件</span></div>
-            <div><strong id="guideCount">-</strong><span>院校基础资料</span></div>
-            <div><strong id="logoCoverage">-</strong><span>校徽图像</span></div>
+            <div><strong id="resourceFiles" class="value-loading"></strong><span>资料源文件</span></div>
+            <div><strong id="guideCount" class="value-loading"></strong><span>院校基础资料</span></div>
+            <div><strong id="logoCoverage" class="value-loading"></strong><span>校徽图像</span></div>
           </div>
           <div class="source-stack" id="sourceStack"></div>
-          <div class="left-analytics">
-            <section>
-              <div class="left-analytics-head"><span>位次核验</span><b id="leftRankDelta">-</b></div>
-              <div class="left-rank-bars" id="leftRankBars"></div>
-            </section>
-            <section>
-              <div class="left-analytics-head"><span>志愿结构体检</span><b id="leftBandTotal">-</b></div>
-              <div class="left-band-bars" id="leftBandBars"></div>
-            </section>
+        </section>
+        <section class="rail-card tier-card">
+          <div class="card-head">
+            <h2>各层把握</h2>
+            <span>平均录取概率</span>
           </div>
+          <div class="tier-list" id="tierSummary"></div>
         </section>
       </aside>
 
@@ -127,46 +114,71 @@
         <section class="view active" id="view-dashboard">
           <div class="hero-strip">
             <article><span id="metricRankCurrentLabel">当前分数映射位次</span><strong id="metricRankCurrent">-</strong><small id="metricRankCurrentBasis">按2026一分一段表</small></article>
-            <article><span>模型使用位次</span><strong id="metricRank">-</strong><small id="metricRankBasis">按2026一分一段表</small></article>
+            <article><span>平均录取概率</span><strong id="metricAvgProb">-</strong><small>当前 96 个志愿</small></article>
             <article><span>推荐志愿</span><strong id="metricTotal">-</strong><small>本科批候选</small></article>
             <article><span>可冲</span><strong id="metricReach">-</strong><small id="metricReachRate">-</small></article>
             <article><span>较稳妥</span><strong id="metricStable">-</strong><small id="metricStableRate">-</small></article>
             <article><span>可保底</span><strong id="metricSafe">-</strong><small id="metricSafeRate">-</small></article>
           </div>
 
-          <div class="insight-grid">
-            <section class="insight-panel wide">
+          <div class="dash-grid">
+            <section class="insight-panel dash-list">
               <div class="panel-title">
-                <h1>最值得优先查看</h1>
-                <p>按录取概率、可用生活信息和性价比综合排序。</p>
+                <h1>全部 96 个志愿</h1>
+                <p>按冲、稳、保、兜底排列，点击查看右侧详情。</p>
               </div>
               <div class="priority-list" id="priorityList"></div>
             </section>
-            <section class="insight-panel segment-panel">
-              <div class="panel-title">
-                <h1>当前位次口径表</h1>
-                <p>按2026一分一段表显示真实位次；位次区间仅在资料提供时展示。</p>
-              </div>
-              <div class="segment-summary">
-                <div><span>当前分</span><strong id="segmentScore">-</strong></div>
-                <div><span>当前位次</span><strong id="segmentRank">-</strong></div>
-                <div><span>参考口径</span><strong id="segmentShift">-</strong></div>
-              </div>
-              <div class="segment-table-wrap">
-                <table class="segment-table">
-                  <thead><tr><th>分数</th><th>当前位次</th><th>同分段</th><th>判断</th></tr></thead>
-                  <tbody id="segmentBody"></tbody>
-                </table>
-              </div>
-              <h2 class="subhead">位次趋势</h2>
-              <div class="mini-chart" id="rankTrendMini"></div>
-              <div class="precision-grid">
-                <section>
-                  <h2>模型诊断 · 2026时间外回测</h2>
-                  <div id="diagnosticPanel" class="diagnostic-list"></div>
+
+            <div class="dash-side">
+              <section class="insight-panel dash-card dash-tabs-card">
+                <div class="dash-tabs" id="dashTabs" role="tablist">
+                  <button class="active" data-dash-tab="trend" type="button" role="tab">位次趋势</button>
+                  <button data-dash-tab="segment" type="button" role="tab">一分一段</button>
+                  <button data-dash-tab="model" type="button" role="tab">模型诊断</button>
+                </div>
+                <div class="dash-pane active" data-dash-pane="trend">
+                  <div class="mini-chart" id="rankTrendMini"></div>
+                </div>
+                <div class="dash-pane" data-dash-pane="segment">
+                  <div class="segment-summary">
+                    <div><span>当前分</span><strong id="segmentScore">-</strong></div>
+                    <div><span>当前位次</span><strong id="segmentRank">-</strong></div>
+                    <div><span>参考口径</span><strong id="segmentShift">-</strong></div>
+                  </div>
+                  <div class="segment-table-wrap">
+                    <table class="segment-table">
+                      <thead><tr><th>分数</th><th>当前位次</th><th>同分段</th><th>判断</th></tr></thead>
+                      <tbody id="segmentBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+                <div class="dash-pane" data-dash-pane="model">
+                  <p class="dash-note">2026 年时间外回测：模型在没见过 2026 年数据时的预测误差，不是录取保证。</p>
+                  <div id="diagnosticPanel" class="diag-stats"></div>
+                  <div class="chart-box" id="chartDiag"></div>
+                </div>
+              </section>
+
+              <section class="insight-panel dash-card chart-card">
+                <div class="panel-title">
+                  <h1>难度 × 把握</h1>
+                  <p>越靠右越难考，越靠上越有把握；点圆点看详情。</p>
+                </div>
+                <div class="chart-box" id="chartScatter"></div>
+              </section>
+
+              <div class="dash-pair">
+                <section class="insight-panel dash-card chart-card">
+                  <div class="panel-title"><h1>录取概率</h1><p>每 10% 一档</p></div>
+                  <div class="chart-box" id="chartProb"></div>
+                </section>
+                <section class="insight-panel dash-card chart-card">
+                  <div class="panel-title"><h1>城市分布</h1><p>前 8 个城市</p></div>
+                  <div class="chart-box" id="chartCity"></div>
                 </section>
               </div>
-            </section>
+            </div>
           </div>
         </section>
 
@@ -210,17 +222,15 @@
             </div>
           </div>
           <div class="table-shell">
-            <table class="decision-table">
+            <table class="decision-table compact-table">
               <thead>
                 <tr>
                   <th>序</th>
-                  <th>更换</th>
-                  <th>校徽</th>
                   <th>院校 / 专业</th>
-                  <th>风险</th>
-                  <th>2024 / 2025 / 2026 / 2027预测</th>
+                  <th>风险 · 概率</th>
+                  <th>位次走势（2024—2027）</th>
                   <th>计划 / 学费</th>
-                  <th>吃住 / 发展 / 评价</th>
+                  <th>生活资料</th>
                   <th>操作</th>
                 </tr>
               </thead>
@@ -235,8 +245,8 @@
         <section class="view" id="view-profile">
           <div class="profile-canvas">
             <div class="profile-tabs" id="profileTabs">
-              <button class="active" data-profile-tab="basic">基础信息</button>
-              <button data-profile-tab="admission">录取趋势</button>
+              <button class="active" data-profile-tab="admission">录取趋势</button>
+              <button data-profile-tab="basic">基础信息</button>
               <button data-profile-tab="major_strength">专业实力</button>
               <button data-profile-tab="life">生活体验</button>
               <button data-profile-tab="development">发展机会</button>
@@ -247,16 +257,10 @@
           </div>
         </section>
 
-        <section class="view" id="view-life">
-          <div class="panel-head">
-            <div><h1>生活体验筛选</h1><p>围绕宿舍、食堂、校区、城市和学生评价做选择。</p></div>
-          </div>
-          <div class="life-grid" id="lifeGrid"></div>
-        </section>
 
         <section class="view" id="view-sources">
           <div class="panel-head">
-            <div><h1>资料说明</h1><p>用户看到来源类型、可信度和核验提示，不展示技术细节。</p></div>
+            <div><h1>资料说明</h1><p>数据来源、覆盖程度和模型回测结果。重要填报前请以招生章程和学校官方发布为准。</p></div>
           </div>
           <div class="sources-board" id="sourcesBoard"></div>
         </section>
@@ -331,6 +335,7 @@
     </section>
 
     <div class="entry-loader" id="entryLoader" hidden aria-live="polite" aria-busy="true">
+      <div class="entry-particles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <div class="entry-loader-panel">
         <span>贵州物理类 · 预测计算</span>
         <h2 id="entryLoaderTitle">正在生成你的志愿决策表</h2>
@@ -342,12 +347,22 @@
           <g class="entry-node node-two"><circle cx="200" cy="100" r="5"/><text x="200" y="80">选择</text></g>
           <g class="entry-node node-three"><circle cx="385" cy="55" r="5"/><text x="385" y="35">方向</text></g>
           <g class="entry-node node-four"><circle cx="565" cy="20" r="5"/><text x="565" y="50">未来</text></g>
+          <circle class="entry-comet" r="4.5">
+            <animateMotion dur="2.4s" repeatCount="indefinite" path="M30 135 C100 135 130 95 200 100 S320 35 385 55 S475 30 565 20" />
+          </circle>
         </svg>
+        <ol class="entry-steps" aria-hidden="true">
+          <li>读取 2026 一分一段表</li>
+          <li>换算你的位次</li>
+          <li>校准 96 个冲稳保志愿</li>
+          <li>生成院校画像</li>
+        </ol>
+        <div class="entry-progress" aria-hidden="true"><i></i></div>
         <div class="entry-numbers" id="entryNumbers"></div>
       </div>
     </div>
 
     <div class="toast" id="toast" hidden></div>
-    <script type="module" src="/static/app.js?v=20261023c"></script>
+    <script type="module" src="/static/app.js?v=20261023r"></script>
   </body>
 </html>

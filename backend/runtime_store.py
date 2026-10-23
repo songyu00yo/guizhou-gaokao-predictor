@@ -175,6 +175,11 @@ class RuntimeStore:
         alternates = np.asarray([int(value) for value in order if int(value) not in chosen][:192], dtype=int)
         return selected_array, alternates
 
+    def _display_plan(self, source: dict[str, Any], year: int = 2026) -> int | None:
+        history = self.supplement.get("programs", {}).get(source["unit_id"], {}).get(f"history_{year}") or {}
+        value = history.get("plan_count") if history.get("catalog_source_page") else source.get(f"plan_{year}")
+        return int(value) if value is not None else None
+
     def _item(self, index: int, user_rank: int, probability: float, order: int | None) -> dict[str, Any]:
         source = self.programs[index]
         q05, q10, q50, q90, q95 = (int(value) for value in self.quantiles[index])
@@ -203,7 +208,7 @@ class RuntimeStore:
             "rank_q95": q95,
             "rank_2026": source["rank_2026"],
             "score_2026": source["score_2026"],
-            "plan_2026": source.get("plan_2026"),
+            "plan_2026": self._display_plan(source),
             "admitted_2026": source.get("admitted_2026"),
             "risk_level": risk,
             "admission_probability": round(float(probability), 4),
@@ -233,6 +238,20 @@ class RuntimeStore:
             result["school_tier_label"] = headline["tier"]
         return result
 
+    def _history(self, unit_id: str) -> dict[str, Any]:
+        """Compact 2024-2027 history shared by list rows and the detail view."""
+        source = self.by_id[unit_id]
+        extra = self.supplement.get("programs", {}).get(unit_id, {})
+        histories = [extra.get(f"history_{year}") or {} for year in (2024, 2025)]
+        histories.append(extra.get("history_2026") or {"min_rank": source["rank_2026"], "min_score": source["score_2026"],
+                                                      "plan_count": source.get("plan_2026"),
+                                                      "admitted_count": source.get("admitted_2026")})
+        return {"years": ["2024", "2025", "2026", "2027预测"],
+                "rank": [h.get("min_rank") for h in histories] + [source["predicted_rank"]],
+                "score": [h.get("min_score") for h in histories] + [None],
+                "plan": [h.get("plan_count") for h in histories] + [None],
+                "admitted": [h.get("admitted_count") for h in histories] + [None]}
+
     @lru_cache(maxsize=256)
     def recommend(self, score: int, current_rank: int | None, preference: str) -> dict[str, Any]:
         preference = preference if preference in RISK_QUOTAS else "balanced"
@@ -247,6 +266,10 @@ class RuntimeStore:
             self._item(int(index), user_rank, float(probabilities[index]), None)
             for index in alternates
         ]
+        # 列表每行要画 2024—2027 位次走势：只给正式志愿附上 4 个位次数字，
+        # 完整历史（分数、计划、录取人数、来源）仍只由 detail 返回，控制列表体积。
+        for item in selected_items:
+            item["rank_trend"] = self._history(item["unit_id"])["rank"]
         distribution: dict[str, int] = {}
         for item in selected_items:
             distribution[item["risk_level"]] = distribution.get(item["risk_level"], 0) + 1
@@ -318,12 +341,7 @@ class RuntimeStore:
         item.setdefault("history_2026", {"year": 2026, "min_rank": source["rank_2026"],
                                         "min_score": source["score_2026"], "plan_count": source.get("plan_2026"),
                                         "admitted_count": source.get("admitted_2026")})
-        histories = [item.get(f"history_{year}") or {} for year in (2024, 2025, 2026)]
-        item["history"] = {"years": ["2024", "2025", "2026", "2027预测"],
-                           "rank": [h.get("min_rank") for h in histories] + [source["predicted_rank"]],
-                           "score": [h.get("min_score") for h in histories] + [None],
-                           "plan": [h.get("plan_count") for h in histories] + [None],
-                           "admitted": [h.get("admitted_count") for h in histories] + [None]}
+        item["history"] = self._history(unit_id)
         item["uncertainty_range"] = {
             "rank_80pct": [source["rank_q10"], source["rank_q90"]],
             "rank_90pct": [source["rank_q05"], source["rank_q95"]],
@@ -339,7 +357,7 @@ class RuntimeStore:
             raise KeyError(school)
         rows = [self.programs[index] for index in indices]
         best_rank = min(int(row["predicted_rank"]) for row in rows)
-        plans = [int(row["plan_2026"]) for row in rows if row.get("plan_2026") is not None]
+        plans = [value for row in rows if (value := self._display_plan(row)) is not None]
         majors = [
             {
                 "unit_id": row["unit_id"],
@@ -348,7 +366,7 @@ class RuntimeStore:
                 "predicted_rank": row["predicted_rank"],
                 "rank_2026": row["rank_2026"],
                 "score_2026": row["score_2026"],
-                "plan_2026": row.get("plan_2026"),
+                "plan_2026": self._display_plan(row),
                 "admitted_2026": row.get("admitted_2026"),
             }
             for row in sorted(rows, key=lambda value: int(value["predicted_rank"]))
@@ -365,6 +383,8 @@ class RuntimeStore:
                 "major_count": len(rows),
                 "min_rank_2026": min(int(row["rank_2026"]) for row in rows),
                 "plan_total_2026": sum(plans) if plans else None,
+                "programs_with_verified_plan_2026": len(plans),
+                "plan_total_status": "complete" if len(plans) == len(rows) else "partial",
                 "tuition_range": "待核验",
                 "source_count": 1,
             },

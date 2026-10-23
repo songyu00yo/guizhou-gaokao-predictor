@@ -114,3 +114,33 @@ def test_environment_override_precedes_active_package(tmp_path: Path, monkeypatc
     pointer.write_text(json.dumps({"artifact_dir": "/missing"}))
     monkeypatch.setenv("GZ_RUNTIME_DATA_DIR", str(package))
     assert RuntimeStore.from_environment(tmp_path).artifact_dir == package
+
+
+def test_catalog_heading_accepts_no_space_before_plan_and_wrapped_major():
+    from backend.catalog_pipeline import SCHOOL_LINE, _parse_major_buffer
+    heading = SCHOOL_LINE.match('0016 安徽工业大学(安徽马鞍山)51')
+    assert heading and heading['name'] == '安徽工业大学(安徽马鞍山)'
+    assert heading['total'] == '51'
+    row = _parse_major_buffer(2026, '0010', '安徽大学(安徽合肥)', '510',
+        ['集成电路设计与集成系 化学 5 不限 4 6480', '统'], 40, 'left')
+    assert row and row.major_name == '集成电路设计与集成系统'
+    assert row.tuition == '6480'
+
+
+def test_supplemental_plan_never_uses_admitted_count_as_plan():
+    from backend.runtime_store import RuntimeStore
+    store = object.__new__(RuntimeStore)
+    record = {'unit_id': 'example', 'plan_2026': None, 'admitted_2026': 9}
+    store.supplement = {'programs': {'example': {'history_2026':
+        {'catalog_source_page': 39, 'plan_count': 5, 'admitted_count': 9}}}}
+    assert store._display_plan(record) == 5
+    store.supplement['programs']['example']['history_2026']['plan_count'] = None
+    assert store._display_plan(record) is None
+
+
+def test_catalog_column_headers_never_become_school_name_parts():
+    from backend.catalog_pipeline import _clean_school_heading, _is_noise
+    assert _is_noise('│普通类│')
+    assert _is_noise('制 元/年')
+    assert _clean_school_heading('贵州民族大学(贵州贵阳)│普通类│制 元/年') == '贵州民族大学(贵州贵阳)'
+    assert _clean_school_heading('东北大学秦皇岛分校(河北秦│普通类│制 元/年皇岛)') == '东北大学秦皇岛分校(河北秦皇岛)'

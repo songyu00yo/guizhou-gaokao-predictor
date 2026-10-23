@@ -1,0 +1,162 @@
+{
+  "documents": [
+    {
+      "school": "天津医科大学",
+      "year": 2026,
+      "kind": "charter",
+      "url": "https://www.tmu.edu.cn/bkzs/2026/0511/c8925a87786/page.htm",
+      "title": "天津医科大学2026年普通本科招生章程",
+      "expected_phrases": [
+        "天津医科大学",
+        "2026",
+        "章程"
+      ],
+      "scope": "普通本科招生章程；学费若仅引用政策标准不拆分到专业。",
+      "published_at": null,
+      "cache_path": "data/raw/collections/medical/天津医科大学-2026-charter.html",
+      "fees_rows": [],
+      "source_url": "https://www.tmu.edu.cn/bkzs/2026/0511/c8925a87786/page.htm",
+      "source_year": 2026,
+      "license": "学校官方招生网站公开信息",
+      "fetched_at": 1792742958,
+      "sha256": "2bde588e0786c1bdcca6fb1ab4cd2c5aeaeb9ff858ebb303b8bc41690713a53b",
+      "bytes": 69643,
+      "identity_verified": true
+    },
+    {
+      "school": "内蒙古医科大学",
+      "year": 2026,
+      "kind": "charter",
+      "url": "https://pgzs.immu.edu.cn/zszc.htm",
+      "title": "内蒙古医科大学2026年普通本科招生章程",
+      "expected_phrases": [
+        "内蒙古医科大学",
+        "2026",
+        "章程"
+      ],
+      "scope": "普通本科招生章程；收费标准如为专业层级具体条款再单列。",
+      "published_at": null,
+      "cache_path": "data/raw/collections/medical/内蒙古医科大学-2026-charter.html",
+      "fees_rows": [],
+      "source_url": "https://pgzs.immu.edu.cn/zszc.htm",
+      "source_year": 2026,
+      "license": "学校官方招生网站公开信息",
+      "fetched_at": 1792742959,
+      "sha256": "9dadffd83c9b8aab30ae5183b3ceb77a8b962d2e1ba20b5ad4bba854db8af42f",
+      "bytes": 13299,
+      "identity_verified": true
+    },
+    {
+      "school": "吉林医药学院",
+      "year": 2026,
+      "kind": "charter",
+      "url": "https://xzs.jlmu.cn/info/1111/3889.htm",
+      "title": "吉林医药学院2026年招生章程",
+      "expected_phrases": [
+        "吉林医药学院",
+        "2026",
+        "章程"
+      ],
+      "scope": "普通本科招生章程；收费标准按原文判断是否逐专业明确。",
+      "published_at": null,
+      "cache_path": "data/raw/collections/medical/吉林医药学院-2026-charter.html",
+      "fees_rows": [],
+      "source_url": "https://xzs.jlmu.cn/info/1111/3889.htm",
+      "source_year": 2026,
+      "license": "学校官方招生网站公开信息",
+      "fetched_at": 1792742959,
+      "sha256": "b35b5119fbd27e0971831a18de92d1ff2a70092b9fb0e1783c022ae057659b42",
+      "bytes": 19700,
+      "identity_verified": true
+    },
+    {
+      "school": "齐齐哈尔医学院",
+      "year": 2026,
+      "kind": "charter",
+      "url": "https://zhaosheng.qmu.edu.cn/2026/0422/c3569a205282/page.htm",
+      "title": "齐齐哈尔医学院2026年普通高等教育招生章程",
+      "expected_phrases": [
+        "齐齐哈尔医学院",
+        "2026",
+        "章程"
+      ],
+      "scope": "普通高等教育招生章程；收费标准按原文判断是否逐专业明确。",
+      "published_at": null,
+      "cache_path": "data/raw/collections/medical/齐齐哈尔医学院-2026-charter.html",
+      "fees_rows": [],
+      "source_url": "https://zhaosheng.qmu.edu.cn/2026/0422/c3569a205282/page.htm",
+      "source_year": 2026,
+      "license": "学校官方招生网站公开信息",
+      "fetched_at": 1792742959,
+      "sha256": "f21fda0d4b3b775b616aeb36dff405598d98bb8f2e59b919662096b48b9d8671",
+      "bytes": 24286,
+      "identity_verified": true
+    },
+    {
+      "school": "新疆第二医学院",
+      "year": 2026,
+      "kind": "charter",
+      "url": "https://www.xjsmc.edu.cn/info/1053/4393.htm",
+      "title": "新疆第二医学院2026年招生章程",
+      "expected_phrases": [
+        "新疆第二医学院",
+        "2026",
+        "章程"
+      ],
+      "scope": "普通本科招生章程；不纳入专升本或研究生信息。",
+      "published_at": null,
+      "cache_path": "data/raw/collections/medical/新疆第二医学院-2026-charter.html",
+      "fees_rows": [],
+      "source_url": "https://www.xjsmc.edu.cn/info/1053/4393.htm",
+      "source_year": 2026,
+      "license": "学校官方招生网站公开信息",
+      "fetched_at": 1792742960,
+      "sha256": "8408013ad59912a962a2424d7a1a056a38a67a043a06a4e378bc1983bf82b448",
+      "bytes": 32120,
+      "identity_verified": true
+    },
+    {
+      "school": "齐齐哈尔医学院",
+      "year": 2025,
+      "kind": "charter",
+      "url": "https://huli.qmu.edu.cn/2025/1225/c6616a199840/page.htm",
+      "title": "齐齐哈尔医学院2025年普通高等教育招生章程",
+      "expected_phrases": [
+        "齐齐哈尔医学院",
+        "2025",
+        "章程"
+      ],
+      "scope": "官方招生网历史版普通高等教育招生章程。",
+      "published_at": null,
+      "cache_path": "data/raw/collections/medical/齐齐哈尔医学院-2025-charter.html",
+      "fees_rows": [],
+      "source_url": "https://huli.qmu.edu.cn/2025/1225/c6616a199840/page.htm",
+      "source_year": 2025,
+      "license": "学校官方招生网站公开信息",
+      "fetched_at": 1792742960,
+      "sha256": "c06e9d5feaa9a6e16be9f8cdcdc2dc7567d45c97d06f8e6e67a88b99e9cee0f2",
+      "bytes": 27555,
+      "identity_verified": true
+    }
+  ],
+  "errors": [
+    {
+      "school": "福建医科大学",
+      "year": 2026,
+      "url": "https://gaokao.chsi.com.cn/zsgs/zhangcheng/listVerifedZszc--method-view,schId-305,infoId-7638589086.dhtml",
+      "error": "中国教育部阳光高考平台页面返回 HTTP 412；按要求未尝试绕过，正文未缓存。"
+    },
+    {
+      "school": "山西医科大学",
+      "year": 2026,
+      "url": "https://gaokao.chsi.com.cn/zsgs/zhangcheng/listVerifedZszc--method-view,schId-96,infoId-7625642135.dhtml",
+      "error": "中国教育部阳光高考平台页面返回 HTTP 412；按要求未尝试绕过，正文未缓存。"
+    },
+    {
+      "school": "新疆医科大学",
+      "year": 2026,
+      "url": "https://www.xjmu.edu.cn/zsjy/bkszs.htm",
+      "error": "学校本科生招生页可打开，但未发现可核验的2026普通本科招生章程全文链接；检索结果中的收费分门类标准未据此摊派至具体专业。"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
-import { state } from "./js/state.js";
-import { fetchJson, fetchRecommendations, isAbortError } from "./js/api.js";
-import { prefersReducedMotion } from "./js/motion.js";
+import { state } from "./js/state.js?v=20261023r";
+import { fetchJson, fetchRecommendations, isAbortError } from "./js/api.js?v=20261023r";
+import { countUp, prefersReducedMotion } from "./js/motion.js?v=20261023r";
 
 const RISK_COLORS = {
   强冲: "#c93838",
@@ -85,9 +85,39 @@ function markEntering(node, key) {
   const clear = () => {
     if (node.__enterToken === token) node.classList.remove("is-entering");
   };
-  node.addEventListener("animationend", clear, { once: true });
-  // 隐藏视图里的动画不会触发 animationend，兜底清掉类名。
-  window.setTimeout(clear, 600);
+  // 子元素按顺序依次入场，冒泡上来的 animationend 会提前掐断后面的动画，所以只靠定时器收尾。
+  window.setTimeout(clear, ENTER_CLEAR_DELAY);
+}
+
+const ENTER_CLEAR_DELAY = 2600;
+
+// 开场遮罩下已经播完的入场动画，在界面露出时再播一遍。
+function replayEntering(node, className = "is-entering", duration = ENTER_CLEAR_DELAY) {
+  if (!node || prefersReducedMotion()) return;
+  node.classList.remove("is-entering", "is-refreshing");
+  void node.offsetWidth;
+  node.classList.add(className);
+  const token = (node.__enterToken || 0) + 1;
+  node.__enterToken = token;
+  window.setTimeout(() => {
+    if (node.__enterToken === token) node.classList.remove(className);
+  }, duration);
+}
+
+const formatCountUp = (value) => Math.round(value).toLocaleString("zh-CN");
+
+// 数字从 0 滚动到目标值。
+function setCount(id, value, format = formatCountUp) {
+  const node = el(id);
+  if (!node) return;
+  const number = value === null || value === undefined || value === "" ? NaN : Number(value);
+  if (!Number.isFinite(number)) {
+    node.textContent = "-";
+    delete node.dataset.countValue;
+    return;
+  }
+  if (node.dataset.countValue === String(number)) return;
+  countUp(node, number, { format });
 }
 
 // 列表首帧只整体淡入一次：逐行动画在筛选/排序时会造成整表闪烁。
@@ -104,9 +134,9 @@ function toast(message) {
   toast.timer = setTimeout(() => { node.hidden = true; }, 2300);
 }
 
-// 开场只用于覆盖首屏等待：数据就绪后 1.2s 内必收束，不再强制浏览 5 秒动画。
-const ENTRY_MIN_DURATION = 1200;
-const ENTRY_FADE_DURATION = 220;
+// 开场动画固定播放约 5 秒（数据更慢时等数据），结束后界面依次入场。
+const ENTRY_MIN_DURATION = 5200;
+const ENTRY_FADE_DURATION = 600;
 
 function setEntryLoaderStep(step, text) {
   const loader = el("entryLoader");
@@ -134,7 +164,27 @@ async function hideEntryLoader() {
   loader.dataset.visible = "false";
   await new Promise((resolve) => window.setTimeout(resolve, prefersReducedMotion() ? 0 : ENTRY_FADE_DURATION));
   loader.hidden = true;
+  revealApp();
   renderRankTrendMini();
+}
+
+function revealApp() {
+  document.body.dataset.revealed = "true";
+  // 开场入场动画只在这几秒内生效，之后切换页面不会重播。
+  document.body.classList.add("is-revealing");
+  window.setTimeout(() => document.body.classList.remove("is-revealing"), 3000);
+  replayEntering(el("priorityList"));
+  replayEntering(el("detailPanel"));
+  // 风险环形图在开场遮罩下已经画完，清掉重画一次，让扇形展开动画露出来。
+  ["riskDonut", "chartScatter", "chartProb", "chartCity"].forEach((id) => {
+    state.charts[id]?.clear();
+    if (state.charts[id]) state.charts[id].__key = null;
+  });
+  renderRiskChart();
+  renderDashboardCharts();
+  // 顶部数字在遮罩下已经滚完，清掉记录再从 0 滚一次。
+  document.querySelectorAll(".hero-strip strong").forEach((node) => delete node.dataset.countValue);
+  renderSummary();
 }
 
 function waitForVisibleLogos(timeout = 5000) {
@@ -163,7 +213,7 @@ const NO_CHART_ANIMATION = {
   animationEasingUpdate: "linear",
 };
 
-const ANIMATED_CHART_IDS = new Set(["rankTrendMini"]);
+const ANIMATED_CHART_IDS = new Set(["rankTrendMini", "riskDonut", "chartDiag", "chartSelection", "chartBaseline", "chartResidual", "chartProbCurve", "chartScatter", "chartProb", "chartCity", "chartMajors", "chartCoverage", "chartModel"]);
 
 function disableChartAnimation(chart) {
   if (!chart || chart.__noAnimationPatched) return chart;
@@ -179,6 +229,11 @@ function disableChartAnimation(chart) {
 function getChart(id) {
   const node = el(id);
   if (!node || !window.echarts) return null;
+  // 详情页、资料页的图表节点会随内容重新渲染，旧实例脱离页面后要重建。
+  if (state.charts[id] && state.charts[id].getDom() !== node) {
+    state.charts[id].dispose();
+    delete state.charts[id];
+  }
   if (!state.charts[id]) {
     const chart = echarts.init(node, null, { renderer: "canvas" });
     state.charts[id] = ANIMATED_CHART_IDS.has(id) ? chart : disableChartAnimation(chart);
@@ -289,6 +344,18 @@ function historyRecord(item, year) {
   }
   const history = item?.history;
   const label = year === 2027 ? "2027预测" : String(year);
+  // 列表接口只带 4 年位次（rank_trend），详情接口才有分数、计划等完整历史。
+  if (!history && Array.isArray(item?.rank_trend)) {
+    const index = year - 2024;
+    return {
+      year: label,
+      rank: nullableHistoryValue(item.rank_trend[index]),
+      score: year === 2026 ? nullableHistoryValue(item.score_2026) : null,
+      plan: year === 2026 ? nullableHistoryValue(item.plan_2026) : null,
+      admitted: year === 2026 ? nullableHistoryValue(item.admitted_2026) : null,
+      sourceUrl: null,
+    };
+  }
   const index = historyYearIndex(history, year);
   if (index >= 0) {
     return {
@@ -340,6 +407,28 @@ function historySummaryText(item) {
     const rank = record.rank === null ? "位次待核验" : `${formatInt(record.rank)}名`;
     return `${label} ${historyScoreText(record, year)}/${rank}`;
   }).join("；");
+}
+
+// 院校资料还在加载时显示占位条，不写“未提供”；只有数据确实缺失时才写“未提供”。
+function detailCoverageHtml(profile) {
+  if (!profile && state.selectedProfileStatus === "loading") return `<strong class="value-loading" aria-label="资料加载中"></strong>`;
+  const coverage = profile?.headline?.coverage;
+  const number = coverage === null || coverage === undefined || coverage === "" ? NaN : Number(coverage);
+  if (Number.isFinite(number)) return `<strong data-coverage="${number}">${number}%</strong>`;
+  return `<strong>${escapeHtml(profileCoverageText(profile))}</strong>`;
+}
+
+// 同一院校只滚动一次；之后的静默重绘直接显示最终值。
+function animateDetailCoverage(node, item) {
+  const target = node.querySelector("[data-coverage]");
+  if (!target) return;
+  const key = `${item.unit_id}:${target.dataset.coverage}`;
+  if (node.dataset.coverageShown === key) return;
+  node.dataset.coverageShown = key;
+  // 先写 0%，否则第一帧会直接显示终值，看起来还是“跳”出来的。
+  target.textContent = "0%";
+  target.dataset.countValue = "0";
+  countUp(target, Number(target.dataset.coverage), { format: (value) => `${Math.round(value)}%`, duration: 1000 });
 }
 
 function profileCoverageText(profile) {
@@ -510,6 +599,7 @@ function updateLogoCount() {
   const schools = [...new Set(state.list.map(item => logoKey(item.school)))];
   // 以是否拿到可用图片为准：状态字段有 ready/cached 等多种取值，只看 status 会误报 0。
   const ready = schools.filter(key => Boolean(state.logoCache[key]?.logo_url)).length;
+  el("logoCoverage")?.classList.remove("value-loading");
   setText("logoCoverage", `${ready}/${schools.length} 所`);
 }
 let logoRetryTimer = 0;
@@ -610,17 +700,61 @@ function updateNavIndicator() {
 }
 
 // 视图切换只依靠 CSS 里的 .view.active 入场；不再强制回流重放动画。
+// 只重算看得见、且尺寸真的变了的图表；以前每次切换都把所有图表重算一遍，是卡顿来源之一。
 function resizeCharts() {
-  Object.values(state.charts).forEach((chart) => chart?.resize());
+  Object.values(state.charts).forEach((chart) => {
+    if (!chart || chart.isDisposed?.()) return;
+    const dom = chart.getDom();
+    if (!dom?.offsetWidth) return;
+    if (chart.getWidth() === dom.clientWidth && chart.getHeight() === dom.clientHeight) return;
+    chart.resize();
+  });
 }
 
+// 四个页面统一转场：旧页面轻微缩小上浮淡出（左栏同时滑走），布局在不可见的一瞬间切换，
+// 新页面内容带一点 3D 倾角依次翻起浮现。只用位移和透明度，不加遮挡层、不给整页拍快照。
+const VIEW_LEAVE_MS = 200;
+let viewSwitchToken = 0;
+
 function switchView(view) {
+  const from = document.body.dataset.view;
+  if (from === view || prefersReducedMotion() || document.body.dataset.revealed !== "true") {
+    applyView(view);
+    return;
+  }
+  const token = ++viewSwitchToken;
+  document.querySelectorAll(".primary-nav button").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
+  updateNavIndicator();
+  const leaving = el(`view-${from}`);
+  leaving?.classList.remove("view-entering");
+  leaving?.classList.add("view-leaving");
+  if (from === "dashboard") document.querySelector(".left-rail")?.classList.add("rail-leaving");
+  window.setTimeout(() => {
+    if (token !== viewSwitchToken) return;
+    document.querySelectorAll(".view-leaving").forEach((node) => node.classList.remove("view-leaving"));
+    document.querySelector(".left-rail")?.classList.remove("rail-leaving");
+    // 入场类必须和显示新页面在同一刻挂上：晚一帧的话新页面会先完整闪现一下，再变透明重新浮现。
+    el(`view-${view}`)?.classList.add("view-entering");
+    applyView(view);
+    replayEntering(el(`view-${view}`), "view-entering", 1600);
+  }, VIEW_LEAVE_MS);
+}
+
+function applyView(view) {
   document.querySelectorAll(".primary-nav button").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
   document.querySelectorAll(".view").forEach((node) => {
     node.classList.toggle("active", node.id === `view-${view}`);
   });
   updateNavIndicator();
-  requestAnimationFrame(resizeCharts);
+  const from = document.body.dataset.view;
+  document.body.dataset.view = view;
+  // 图表的尺寸计算和绘制在这里同步做完：此时旧页面已淡出、新页面还没开始入场，
+  // 这一下停顿落在画面空白的瞬间，不会打断后面的入场动画。
+  resizeCharts();
+  if (view === "dashboard") renderDashboardCharts();
+  if (view === "profile" && state.activeProfileTab === "admission") renderMajorsChart();
+  if (view === "sources") renderSourceCharts();
+  if (view === "dashboard" && from !== "dashboard") replayEntering(document.querySelector(".left-rail"), "rail-entering", 600);
 }
 
 function bindNavMotion() {
@@ -655,7 +789,6 @@ async function loadResources() {
   try {
     state.resources = await fetchJson("/api/resources/summary");
     renderResources();
-    renderLeftAnalytics();
     renderMobileApp();
   } catch (error) {
     console.error(error);
@@ -671,6 +804,7 @@ async function loadModelReport() {
     console.warn("模型回测报告暂不可用", error);
   }
   renderPrecisionPanels();
+  renderSources();
 }
 
 async function generateList(options = {}) {
@@ -729,7 +863,10 @@ async function generateList(options = {}) {
     if (showLoader) setEntryLoaderStep("plan", "已完成计划校准和风险分层。");
 
     state.summary = data.summary || {};
-    if (showLoader) setText("entryNumbers", `${state.score} 分 · ${formatInt(state.summary.predicted_user_rank ?? state.summary.user_rank)} 名`);
+    if (showLoader) {
+      el("entryNumbers").innerHTML = `<span id="entryScoreCount">${state.score}</span> 分 · <span id="entryRankCount">0</span> 名`;
+      setCount("entryRankCount", state.summary.predicted_user_rank ?? state.summary.user_rank);
+    }
     renderAll();
     if (showLoader) setEntryLoaderStep("school", "正在生成院校排序、详情卡片和资料说明。");
 
@@ -808,11 +945,11 @@ function renderAll() {
   renderSegmentPrediction();
   renderPrecisionPanels();
   renderRiskChart();
-  renderLeftAnalytics();
+  renderTierSummary();
+  renderDashboardCharts();
   renderPriorityList();
   renderTable();
   normalizeDecisionTableHeader();
-  renderLifeGrid();
   renderSources();
   renderMobileApp();
   requestAnimationFrame(resizeCharts);
@@ -1059,8 +1196,8 @@ function renderMobileApp() {
 function normalizeDecisionTableHeader() {
   const headRow = document.querySelector(".decision-table thead tr");
   if (!headRow) return;
-  const labels = ["序", "更换", "校徽", "院校 / 专业", "风险", "2024 / 2025 / 2026 / 2027预测", "计划 / 学费", "吃住 / 发展 / 评价", "操作"];
-  if (headRow.children.length !== labels.length || headRow.children[1]?.textContent.trim() !== "更换") {
+  const labels = ["序", "院校 / 专业", "风险 · 概率", "位次走势（2024—2027）", "计划 / 学费", "生活资料", "操作"];
+  if (headRow.children.length !== labels.length || headRow.children[1]?.textContent.trim() !== "院校 / 专业") {
     headRow.innerHTML = labels.map((label) => `<th>${label}</th>`).join("");
   }
 }
@@ -1075,20 +1212,22 @@ function renderSummary() {
   const reach = asNumber(dist["强冲"]) + asNumber(dist["冲"]);
   const stable = asNumber(dist["稳"]);
   const safe = asNumber(dist["保"]) + asNumber(dist["兜底"]);
-  setText("metricRankCurrent", formatInt(summary.user_rank));
+  setCount("metricRankCurrent", summary.user_rank);
   setText("metricRankCurrentLabel", state.currentRank === null ? "当前分数映射位次" : "手动输入位次");
   setText("metricRankCurrentBasis", state.currentRank === null ? "按2026一分一段表" : "用户输入");
-  setText("metricRank", formatInt(state.currentRank ?? summary.predicted_user_rank ?? summary.user_rank));
+  setCount("metricRank", state.currentRank ?? summary.predicted_user_rank ?? summary.user_rank);
   setText("metricRankBasis", state.currentRank === null ? "按2026一分一段表" : "手动输入位次");
   // 自动换算时展示后端位次；手动输入后保留用户填写值。
   const rankInput = el("rankInput");
   if (rankInput) rankInput.value = state.currentRank ?? summary.predicted_user_rank ?? summary.user_rank ?? "";
   const entryRankInput = el("entryRankInput");
   if (entryRankInput) entryRankInput.value = summary.predicted_user_rank || summary.user_rank || "";
-  setText("metricTotal", total || "-");
-  setText("metricReach", reach || 0);
-  setText("metricStable", stable || 0);
-  setText("metricSafe", safe || 0);
+  setCount("metricTotal", total || null);
+  const probabilities = state.list.map(admissionProbability).filter((value) => value !== null);
+  setCount("metricAvgProb", probabilities.length ? (probabilities.reduce((sum, value) => sum + value, 0) / probabilities.length) * 100 : null, (value) => `${value.toFixed(1)}%`);
+  setCount("metricReach", reach);
+  setCount("metricStable", stable);
+  setCount("metricSafe", safe);
   setText("metricReachRate", total ? `${((reach / total) * 100).toFixed(1)}%` : "-");
   setText("metricStableRate", total ? `${((stable / total) * 100).toFixed(1)}%` : "-");
   setText("metricSafeRate", total ? `${((safe / total) * 100).toFixed(1)}%` : "-");
@@ -1110,9 +1249,18 @@ async function openDetail(unitId) {
   const fallback = [...state.list, ...state.alternates].find((item) => item.unit_id === unitId);
   if (!fallback) return;
   state.selected = fallback;
-  if (state.selectedProfile?.school !== fallback.school) state.selectedProfile = null;
-  renderDetail();
+  if (state.selectedProfile?.school !== fallback.school) {
+    state.selectedProfile = null;
+    state.selectedProfileStatus = "loading";
+  }
   syncSelectedRows();
+  // 列表数据缺历年位次，先不画右侧详情，等详情接口回来只画一次，避免先空后满闪两下。
+  // 已经拿过详情（带 history）的直接画；接口太慢时 600ms 后先用简略数据兜底。
+  const hasDetail = Boolean(fallback.history || fallback.history_2026);
+  if (hasDetail) renderDetail();
+  const slowTimer = hasDetail ? 0 : window.setTimeout(() => {
+    if (state.selected?.unit_id === unitId && el("detailPanel")?.dataset.unit !== unitId) renderDetail();
+  }, 600);
   renderSegmentPrediction();
   renderPrecisionPanels();
   renderMobileApp();
@@ -1122,11 +1270,17 @@ async function openDetail(unitId) {
   fetchJson(`/api/detail/${encodeURIComponent(unitId)}?${params}`)
     .then(async (detail) => {
       if (state.selected?.unit_id !== unitId) return;
-      state.selected = detail;
       const recommendation = [...state.list, ...state.alternates].find((item) => item.unit_id === unitId);
-      if (recommendation) Object.assign(recommendation, detail);
+      if (recommendation) {
+        // 详情接口不带推荐序号，合并时保留原序号，避免表格里显示成“-”。
+        const order = recommendation.order;
+        Object.assign(recommendation, detail);
+        recommendation.order = order;
+      }
+      state.selected = recommendation || detail;
+      window.clearTimeout(slowTimer);
       renderDetail();
-      renderTable();
+      updateTableRow(state.selected);
       syncSelectedRows();
       renderSegmentPrediction();
       renderPrecisionPanels();
@@ -1135,11 +1289,14 @@ async function openDetail(unitId) {
     })
     .catch(async () => {
       if (state.selected?.unit_id !== unitId) return;
+      window.clearTimeout(slowTimer);
+      renderDetail();
       await loadSchoolProfile(fallback.school, false);
     });
 }
 
 async function loadSchoolProfile(school, fetchLogo = false) {
+  if (state.selectedProfile?.school !== school) state.selectedProfileStatus = "loading";
   state.selectedCollegesChat = { status: "loading", school, available: false, message: "正在读取 CollegesChat 生活质量问卷。" };
   const profilePromise = fetchJson(`/api/school-profile/${encodeURIComponent(school)}?fetch_logo=${fetchLogo ? "true" : "false"}`);
   const collegesPromise = loadCollegesChat(school);
@@ -1148,14 +1305,18 @@ async function loadSchoolProfile(school, fetchLogo = false) {
     .then((profile) => {
       if (state.selected?.school && state.selected.school !== school) return;
       state.selectedProfile = profile;
+      state.selectedProfileStatus = "ready";
       renderProfile();
+      renderDetail();
       renderMobileApp();
     })
     .catch((error) => {
       console.error(error);
       if (state.selected?.school && state.selected.school !== school) return;
       state.selectedProfile = null;
+      state.selectedProfileStatus = "error";
       renderProfile();
+      renderDetail();
       renderMobileApp();
     });
 
@@ -1230,6 +1391,8 @@ async function replaceRecommendation(unitId, message = "已更换一个新志愿
   state.list.splice(index, 1);
   fillOpenSlots();
   renderAll();
+  const arrived = state.list[index];
+  if (arrived) document.querySelector(`#resultBody tr[data-unit="${CSS.escape(arrived.unit_id)}"]`)?.classList.add("row-arrive");
   const next = state.list[index] || state.list[Math.max(0, index - 1)] || state.list[0];
   if (next) await openDetail(next.unit_id);
   toast(`${message}：${removed.school}`);
@@ -1293,8 +1456,20 @@ function renderSources() {
   const node = el("sourcesBoard");
   if (!node) return;
   const resources = state.resources || {};
-  const cards = [...(resources.source_cards || []), ...resourceCoverageCards(resources.coverage)];
-  node.innerHTML = algorithmBriefHtml() + cards.map((item) => `
+  // 覆盖率改用图表展示，不再逐条重复成文字卡片。
+  const cards = (resources.source_cards || []).filter((item) => !String(item.title || "").includes("校徽"));
+  node.innerHTML = modelLabHtml() + `
+    <section class="source-card chart-card">
+      <h3>资料覆盖</h3>
+      <p>按院校或专业组合统计；缺失项保持为空，不按相似名称猜测合并。</p>
+      <div class="chart-box chart-tall" id="chartCoverage"></div>
+    </section>
+    <section class="source-card chart-card">
+      <h3>2026 时间外回测：误差范围</h3>
+      <p>预测位次与实际投档位次的相对误差落在各范围内的专业占比。</p>
+      <div class="chart-box chart-tall" id="chartModel"></div>
+    </section>
+  ` + cards.map((item) => `
     <article class="source-card">
       <span>${escapeHtml(item.status || item.confidence || "-")}</span>
       <h3>${escapeHtml(item.title || "资料来源")}</h3>
@@ -1302,6 +1477,327 @@ function renderSources() {
       <small>重要填报前请以招生章程和学校官方发布为准。</small>
     </article>
   `).join("");
+  renderSourceCharts();
+}
+
+// 资料页“模型方法”：公式与图表全部对应 backend/backtest.py、train_forecast.py、runtime_store.py 的实际计算。
+const MODEL_FORMULAS = [
+  {
+    step: "① 年度位次归一化",
+    math: `<math display="block"><msub><mi>f</mi><mrow><mi>i</mi><mo>,</mo><mi>t</mi></mrow></msub><mo>=</mo><mfrac><msub><mi>r</mi><mrow><mi>i</mi><mo>,</mo><mi>t</mi></mrow></msub><msub><mi>N</mi><mi>t</mi></msub></mfrac></math>`,
+    note: "r 为专业 i 在第 t 年的最低投档位次，N 为当年物理类累计位次规模：N₂₀₂₄ = 155,799，N₂₀₂₅ = 158,061，N₂₀₂₆ = 158,893。消除每年考生人数变化的影响。",
+  },
+  {
+    step: "② 预测目标：对数位次增量",
+    math: `<math display="block"><msub><mi>Δ</mi><mrow><mi>i</mi><mo>,</mo><mi>t</mi></mrow></msub><mo>=</mo><mi>ln</mi><mo>&#x2061;</mo><msub><mi>f</mi><mrow><mi>i</mi><mo>,</mo><mi>t</mi></mrow></msub><mo>−</mo><mi>ln</mi><mo>&#x2061;</mo><msub><mi>f</mi><mrow><mi>i</mi><mo>,</mo><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub></math>`,
+    note: "模型不直接猜位次，而是学习“今年比去年热了多少”。训练样本为 2024→2025、2025→2026 两组跨年匹配，共 26,883 条。",
+  },
+  {
+    step: "③ CatBoost 梯度提升回归",
+    math: `<math display="block"><mover><mi>Δ</mi><mo>^</mo></mover><mo>(</mo><mi mathvariant="bold">x</mi><mo>)</mo><mo>=</mo><munderover><mo>∑</mo><mrow><mi>k</mi><mo>=</mo><mn>1</mn></mrow><mi>K</mi></munderover><mi>η</mi><mspace width="0.15em"/><msub><mi>h</mi><mi>k</mi></msub><mo>(</mo><mi mathvariant="bold">x</mi><mo>)</mo><mo>,</mo><mspace width="0.8em"/><munder><mi>min</mi><mi>h</mi></munder><munder><mo>∑</mo><mi>i</mi></munder><mrow><mo>|</mo><msub><mi>Δ</mi><mi>i</mi></msub><mo>−</mo><mover><mi>Δ</mi><mo>^</mo></mover><mo>(</mo><msub><mi mathvariant="bold">x</mi><mi>i</mi></msub><mo>)</mo><mo>|</mo></mrow><mo>+</mo><mi>λ</mi><msup><mrow><mo>‖</mo><mi>w</mi><mo>‖</mo></mrow><mn>2</mn></msup></math>`,
+    note: "K = 900 棵对称树，学习率 η = 0.03，树深 5，损失 MAE，L2 正则 λ = 8。院校、专业、录取类型作为类别特征，由 CatBoost 有序目标编码处理。",
+  },
+  {
+    step: "④ 反变换得到 2027 预测位次",
+    math: `<math display="block"><msub><mover><mi>r</mi><mo>^</mo></mover><mrow><mi>i</mi><mo>,</mo><mn>2027</mn></mrow></msub><mo>=</mo><msub><mi>N</mi><mn>2026</mn></msub><mo>·</mo><mi>exp</mi><mo>&#x2061;</mo><mrow><mo>(</mo><mi>ln</mi><mo>&#x2061;</mo><msub><mi>f</mi><mrow><mi>i</mi><mo>,</mo><mn>2026</mn></mrow></msub><mo>+</mo><mover><mi>Δ</mi><mo>^</mo></mover><mo>(</mo><msub><mi mathvariant="bold">x</mi><mi>i</mi></msub><mo>)</mo><mo>)</mo></mrow></math>`,
+    note: "2027 年一分一段表尚未发布，暂用 2026 年规模换算；结果裁剪到 [1, 300000]。",
+  },
+  {
+    step: "⑤ 残差分位校准（按预测十分位）",
+    math: `<math display="block"><msub><mi>e</mi><mi>i</mi></msub><mo>=</mo><msub><mi>r</mi><mi>i</mi></msub><mo>−</mo><msub><mover><mi>r</mi><mo>^</mo></mover><mi>i</mi></msub><mo>,</mo><mspace width="0.6em"/><msub><mi>Q</mi><mi>d</mi></msub><mo>(</mo><mi>q</mi><mo>)</mo><mo>=</mo><msub><mi>Quantile</mi><mi>q</mi></msub><mo>{</mo><msub><mi>e</mi><mi>i</mi></msub><mo>:</mo><msub><mover><mi>r</mi><mo>^</mo></mover><mi>i</mi></msub><mo>∈</mo><msub><mi>D</mi><mi>d</mi></msub><mo>}</mo><mo>,</mo><mspace width="0.6em"/><msubsup><mover><mi>r</mi><mo>^</mo></mover><mi>i</mi><mrow><mo>(</mo><mi>q</mi><mo>)</mo></mrow></msubsup><mo>=</mo><msub><mover><mi>r</mi><mo>^</mo></mover><mi>i</mi></msub><mo>+</mo><msub><mi>Q</mi><mi>d</mi></msub><mo>(</mo><mi>q</mi><mo>)</mo></math>`,
+    note: "按预测位次分成 10 档 D₁…D₁₀，每档取 2026 时间外残差的 q = 0.05、0.10、0.50、0.90、0.95 分位数。80% 区间即 q = 0.10 到 0.90。",
+  },
+  {
+    step: "⑥ 录取概率：分段线性累积分布",
+    math: `<math display="block"><msub><mi>P</mi><mi>i</mi></msub><mo>(</mo><mi>u</mi><mo>)</mo><mo>=</mo><mn>1</mn><mo>−</mo><msub><mi>F</mi><mi>i</mi></msub><mo>(</mo><mi>u</mi><mo>)</mo><mo>,</mo><mspace width="0.6em"/><msub><mi>F</mi><mi>i</mi></msub><mo>(</mo><mi>u</mi><mo>)</mo><mo>=</mo><msub><mi>q</mi><mi>j</mi></msub><mo>+</mo><mfrac><mrow><mi>u</mi><mo>−</mo><msubsup><mover><mi>r</mi><mo>^</mo></mover><mi>i</mi><mrow><mo>(</mo><msub><mi>q</mi><mi>j</mi></msub><mo>)</mo></mrow></msubsup></mrow><mrow><msubsup><mover><mi>r</mi><mo>^</mo></mover><mi>i</mi><mrow><mo>(</mo><msub><mi>q</mi><mrow><mi>j</mi><mo>+</mo><mn>1</mn></mrow></msub><mo>)</mo></mrow></msubsup><mo>−</mo><msubsup><mover><mi>r</mi><mo>^</mo></mover><mi>i</mi><mrow><mo>(</mo><msub><mi>q</mi><mi>j</mi></msub><mo>)</mo></mrow></msubsup></mrow></mfrac><mo>(</mo><msub><mi>q</mi><mrow><mi>j</mi><mo>+</mo><mn>1</mn></mrow></msub><mo>−</mo><msub><mi>q</mi><mi>j</mi></msub><mo>)</mo></math>`,
+    note: "u 为考生位次。在相邻两个分位点之间线性插值，两端外推并把概率限制在 [0.01, 0.99]：位次越靠前（u 越小），录取概率越高。",
+  },
+  {
+    step: "⑦ 冲稳保分层",
+    math: `<math display="block"><mtext>风险</mtext><mo>(</mo><msub><mi>P</mi><mi>i</mi></msub><mo>)</mo><mo>=</mo><mrow><mo>{</mo><mtable columnalign="left left"><mtr><mtd><mtext>强冲</mtext></mtd><mtd><msub><mi>P</mi><mi>i</mi></msub><mo>&lt;</mo><mn>0.25</mn></mtd></mtr><mtr><mtd><mtext>冲</mtext></mtd><mtd><mn>0.25</mn><mo>≤</mo><msub><mi>P</mi><mi>i</mi></msub><mo>&lt;</mo><mn>0.50</mn></mtd></mtr><mtr><mtd><mtext>稳</mtext></mtd><mtd><mn>0.50</mn><mo>≤</mo><msub><mi>P</mi><mi>i</mi></msub><mo>&lt;</mo><mn>0.74</mn></mtd></mtr><mtr><mtd><mtext>保</mtext></mtd><mtd><mn>0.74</mn><mo>≤</mo><msub><mi>P</mi><mi>i</mi></msub><mo>&lt;</mo><mn>0.89</mn></mtd></mtr><mtr><mtd><mtext>兜底</mtext></mtd><mtd><msub><mi>P</mi><mi>i</mi></msub><mo>≥</mo><mn>0.89</mn></mtd></mtr></mtable></mrow></math>`,
+    note: "均衡策略的名额为 强冲 8、冲 22、稳 36、保 22、兜底 8，合计 96；保守与冲刺策略按各自名额表分配。",
+  },
+  {
+    step: "⑧ 层内排序得分",
+    math: `<math display="block"><msub><mi>S</mi><mi>i</mi></msub><mo>=</mo><mn>0.78</mn><mrow><mo>(</mo><mn>1</mn><mo>−</mo><mrow><mo>|</mo><msub><mi>P</mi><mi>i</mi></msub><mo>−</mo><mi>τ</mi><mo>|</mo></mrow><mo>)</mo></mrow><mo>+</mo><mn>0.22</mn><mspace width="0.15em"/><msub><mi>c</mi><mi>i</mi></msub><mo>,</mo><mspace width="0.8em"/><mi>τ</mi><mo>∈</mo><mo>{</mo><mn>0.80</mn><mo>,</mo><mn>0.62</mn><mo>,</mo><mn>0.42</mn><mo>}</mo></math>`,
+    note: "τ 为策略目标概率（保守 0.80、均衡 0.62、冲刺 0.42），c 为模型置信度。每层按 S 从高到低取满名额。",
+  },
+];
+
+function modelLabHtml() {
+  const report = state.modelReport || {};
+  const backtest = report.time_out_2026_metrics_without_future_plan || {};
+  const calibration = report.crossfit_calibration || {};
+  const pipeline = [
+    ["投档数据", "2024—2026 贵州物理类本科批"],
+    ["跨年匹配", `${formatCount(report.training_rows)} 条样本`],
+    ["归一化 f", "位次 ÷ 当年规模"],
+    ["CatBoost Δ", "900 树 · 深度 5"],
+    ["反变换 r̂", "2027 中位预测"],
+    ["残差校准", "10 档 × 5 分位"],
+    ["概率 P", "分段线性 CDF"],
+    ["冲稳保 96", "名额 + 得分 S"],
+  ];
+  const stats = [
+    ["训练样本", formatCount(report.training_rows), "2024→2025、2025→2026"],
+    ["预测专业组合", formatCount(report.forecast_rows), "2027 全部候选"],
+    ["时间外 MAE", `${formatCount(backtest.mae_rank)} 名`, "2026 年未参与训练"],
+    ["80% 区间覆盖", calibration.q10_q90_coverage === undefined ? "-" : formatPercent(calibration.q10_q90_coverage, 1), "五折交叉校准"],
+  ];
+  return `
+    <section class="source-card model-lab">
+      <div class="model-lab-head">
+        <div>
+          <span class="model-kicker">实际部署模型 · ${escapeHtml(report.deployment_route || "catboost_delta_d5")}</span>
+          <h2>CatBoost 对数位次增量回归 + 残差分位校准</h2>
+          <p>先把每年的投档位次换算成“占全省考生的比例”，再用梯度提升树学习这一比例逐年的变化量；预测值经残差分位数校准后得到区间，最后换算为录取概率并按冲稳保分层。所有参数与下方公式一致，评估全部来自模型没见过的 2026 年数据。</p>
+        </div>
+        <div class="model-lab-stats">
+          ${stats.map(([label, value, note]) => `<div><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(note)}</small></div>`).join("")}
+        </div>
+      </div>
+      <ol class="model-pipeline">
+        ${pipeline.map(([title, note], index) => `<li style="--i:${index}"><b>${escapeHtml(title)}</b><small>${escapeHtml(note)}</small></li>`).join("")}
+      </ol>
+      <div class="formula-board">
+        ${MODEL_FORMULAS.map((item, index) => `
+          <article class="formula-tile" style="--i:${index}">
+            <span>${escapeHtml(item.step)}</span>
+            <div class="formula-math">${item.math}</div>
+            <p>${escapeHtml(item.note)}</p>
+          </article>
+        `).join("")}
+      </div>
+      <div class="model-feature-row">
+        <div>
+          <h3>输入特征（24 个）</h3>
+          <p><b>类别特征 3 个：</b>院校、专业、录取类型。</p>
+          <p><b>数值特征 21 个：</b>上年位次对数、上年归一化位次及其对数、年度规模增长比、上年最低分、上年录取人数对数、院校/专业历史中位位次、相对院校与专业中位的中心化位次、院校专业数、开设该专业的院校数、专业名长度，以及中外合作、医学、计算机、师范、本省院校五个标记；当年计划相关 3 项在 2027 招生目录发布前统一置空。</p>
+        </div>
+        <div>
+          <h3>选型与验证</h3>
+          <p>候选模型在 2024→2025 上做 5 折分组交叉验证（按院校分组，同一学校不会同时出现在训练与验证中），按综合误差得分选出 ${escapeHtml(report.deployment_route || "catboost_delta_d5")}；2026 年数据只用来做时间外评估，不参与选型。</p>
+          <p>区间校准使用五折交叉拟合：按院校专业键哈希分折，每折用其余四折的残差分位数校准，覆盖率才是诚实的样本外结果。</p>
+        </div>
+      </div>
+    </section>
+    <section class="source-card chart-card model-chart-card">
+      <h3>候选模型选型：5 折分组验证平均绝对误差</h3>
+      <p>2024→2025 训练集上的分组交叉验证结果，越短越好；蓝色为实际部署的模型。</p>
+      <div class="chart-box chart-tall" id="chartSelection"></div>
+    </section>
+    <section class="source-card chart-card model-chart-card">
+      <h3>2026 时间外：本模型 vs 简单基线</h3>
+      <p>同一批 13,491 个专业，分别用“去年位次直接沿用”等简单方法与本模型预测 2026 年，比较平均绝对误差。</p>
+      <div class="chart-box" id="chartBaseline"></div>
+    </section>
+    <section class="source-card chart-card model-chart-card">
+      <h3>残差分位扇形：不同位次段的不确定性</h3>
+      <p>横轴为预测位次十分位档，纵轴为“实际 − 预测”位次残差。深色带为 80% 区间（q10—q90），浅色带延伸到 90%（q05—q95），折线为中位残差。位次越靠后，不确定性越大。</p>
+      <div class="chart-box chart-tall" id="chartResidual"></div>
+    </section>
+    <section class="source-card chart-card model-chart-card">
+      <h3 id="probCurveTitle">位次 → 录取概率曲线</h3>
+      <p>公式 ⑥ 的实际形状：以右侧当前选中的志愿为例，横轴为考生位次，纵轴为录取概率，圆点为你的位次。</p>
+      <div class="chart-box chart-tall" id="chartProbCurve"></div>
+    </section>
+  `;
+}
+
+function renderModelLabCharts() {
+  const report = state.modelReport;
+  if (!report) return;
+  const deployed = report.deployment_route;
+  const selection = [...(report.internal_model_selection || [])]
+    .filter((row) => Number.isFinite(Number(row.mae_rank)))
+    .sort((a, b) => a.mae_rank - b.mae_rank);
+  if (selection.length) {
+    paintChart("chartSelection", {
+      grid: { left: 150, right: 70, top: 8, bottom: 8 },
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: ([entry]) => {
+        const row = selection[entry.dataIndex];
+        return `<b>${escapeHtml(row.route)}</b><br/>平均绝对误差 ${formatInt(row.mae_rank)} 名<br/>误差中位数 ${formatInt(row.median_ae_rank)} 名<br/>10% 以内 ${formatPercent(row.within_10pct, 1)}`;
+      } },
+      xAxis: { type: "value", show: false },
+      yAxis: { type: "category", inverse: true, data: selection.map((row) => row.route), ...CHART_AXIS, axisLine: { show: false }, axisLabel: { color: "#10213d", fontSize: 11 } },
+      series: [{
+        type: "bar",
+        barWidth: 12,
+        data: selection.map((row) => ({ value: Math.round(row.mae_rank), itemStyle: { color: row.route === deployed ? "#1558b0" : "rgba(21,88,176,.28)" } })),
+        itemStyle: { borderRadius: 6 },
+        label: { show: true, position: "right", color: "#10213d", fontWeight: 800, fontSize: 11, formatter: ({ value }) => formatInt(value) },
+        animationDelay: (index) => index * 60,
+      }],
+    }, JSON.stringify(selection.map((row) => [row.route, row.mae_rank])));
+  }
+  const timeOut = report.time_out_2026_metrics_without_future_plan;
+  const baselineNames = { last_year_rank: "去年位次直接沿用", percentile_persistence: "百分位不变", global_ratio: "全局比例缩放" };
+  const baselines = [
+    ...(timeOut ? [{ route: deployed, label: "本模型（部署）", mae: timeOut.mae_rank }] : []),
+    ...(report.time_out_baselines || []).map((row) => ({ route: row.route, label: baselineNames[row.route] || row.route, mae: row.mae_rank })),
+  ].filter((row) => Number.isFinite(Number(row.mae)));
+  if (baselines.length) {
+    paintChart("chartBaseline", {
+      grid: { left: 120, right: 70, top: 8, bottom: 8 },
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: ([entry]) => `${entry.name}<br/>平均绝对误差 <b>${formatInt(entry.value)}</b> 名` },
+      xAxis: { type: "value", show: false },
+      yAxis: { type: "category", inverse: true, data: baselines.map((row) => row.label), ...CHART_AXIS, axisLine: { show: false }, axisLabel: { color: "#10213d", fontSize: 12, fontWeight: 800 } },
+      series: [{
+        type: "bar",
+        barWidth: 14,
+        data: baselines.map((row, index) => ({ value: Math.round(row.mae), itemStyle: { color: index === 0 ? "#1558b0" : "#9fb0c4" } })),
+        itemStyle: { borderRadius: 7 },
+        label: { show: true, position: "right", color: "#10213d", fontWeight: 800, formatter: ({ value }) => `${formatInt(value)} 名` },
+        animationDelay: (index) => index * 120,
+      }],
+    }, JSON.stringify(baselines));
+  }
+  const profiles = report.calibration_profiles || [];
+  if (profiles.length) {
+    const labels = profiles.map((row) => `D${row.decile + 1}`);
+    paintChart("chartResidual", {
+      grid: { left: 58, right: 18, top: 30, bottom: 40 },
+      legend: { top: 0, right: 0, itemWidth: 12, itemHeight: 8, textStyle: { color: "#52627a", fontSize: 11, fontWeight: 700 }, data: ["90% 区间", "80% 区间", "中位残差"] },
+      tooltip: { trigger: "axis", formatter: (items) => {
+        const row = profiles[items[0].dataIndex];
+        return `<b>${labels[items[0].dataIndex]}</b>：预测位次 ${formatInt(row.predicted_min)}—${formatInt(row.predicted_max)}<br/>q05 ${formatInt(row.q05)} · q10 ${formatInt(row.q10)} · q50 ${formatInt(row.q50)}<br/>q90 ${formatInt(row.q90)} · q95 ${formatInt(row.q95)}（${formatInt(row.rows)} 个样本）`;
+      } },
+      xAxis: { type: "category", data: labels, ...CHART_AXIS, splitLine: { show: false }, name: "预测位次十分位（D1 最靠前）", nameLocation: "middle", nameGap: 26 },
+      yAxis: { type: "value", ...CHART_AXIS, axisLabel: { ...CHART_AXIS.axisLabel, formatter: (value) => formatInt(value) } },
+      // 残差有正有负，堆叠柱会把正负分开堆；这里直接按坐标画 q05—q95 与 q10—q90 两层色带。
+      series: [
+        {
+          name: "90% 区间",
+          type: "custom",
+          itemStyle: { color: "rgba(21,88,176,.18)" },
+          renderItem: (params, api) => {
+            const width = api.size([1, 0])[0] * 0.46;
+            const top = api.coord([api.value(0), api.value(2)]);
+            const bottom = api.coord([api.value(0), api.value(1)]);
+            return { type: "rect", shape: { x: top[0] - width / 2, y: top[1], width, height: bottom[1] - top[1], r: 4 }, style: { fill: "rgba(21,88,176,.18)" } };
+          },
+          encode: { x: 0, y: [1, 2] },
+          data: profiles.map((row, index) => [index, row.q05, row.q95]),
+        },
+        {
+          name: "80% 区间",
+          type: "custom",
+          itemStyle: { color: "rgba(21,88,176,.55)" },
+          renderItem: (params, api) => {
+            const width = api.size([1, 0])[0] * 0.46;
+            const top = api.coord([api.value(0), api.value(2)]);
+            const bottom = api.coord([api.value(0), api.value(1)]);
+            return { type: "rect", shape: { x: top[0] - width / 2, y: top[1], width, height: bottom[1] - top[1], r: 3 }, style: { fill: "rgba(21,88,176,.55)" } };
+          },
+          encode: { x: 0, y: [1, 2] },
+          data: profiles.map((row, index) => [index, row.q10, row.q90]),
+          z: 3,
+        },
+        { name: "中位残差", type: "line", data: profiles.map((row) => row.q50), symbol: "circle", symbolSize: 7, lineStyle: { color: "#c96b12", width: 2.5 }, itemStyle: { color: "#c96b12" }, z: 5 },
+      ],
+    }, JSON.stringify(profiles));
+  }
+  renderProbCurveChart();
+}
+
+function renderProbCurveChart() {
+  const item = state.selected;
+  const knots = item ? [item.rank_q05, item.rank_q10, item.rank_q50, item.rank_q90, item.rank_q95].map(nullableHistoryValue) : [];
+  if (!item || knots.some((value) => value === null)) return;
+  const levels = [0.05, 0.10, 0.50, 0.90, 0.95];
+  // 与 runtime_store._probabilities 相同的分段线性累积分布。
+  const cdf = (rank) => {
+    if (rank < knots[0]) return Math.min(0.05, Math.max(0.01, 0.05 * rank / Math.max(knots[0], 1)));
+    for (let j = 0; j < 4; j += 1) {
+      if (rank <= knots[j + 1]) return levels[j] + Math.min(1, Math.max(0, (rank - knots[j]) / Math.max(knots[j + 1] - knots[j], 1))) * (levels[j + 1] - levels[j]);
+    }
+    return Math.min(0.99, Math.max(0.95, 0.95 + 0.04 * (rank - knots[4]) / Math.max(knots[4] - knots[0], 1)));
+  };
+  const probability = (rank) => Math.min(0.99, Math.max(0.01, 1 - cdf(rank)));
+  const span = knots[4] - knots[0];
+  const start = Math.max(1, Math.floor(knots[0] - span * 0.35));
+  const end = Math.ceil(knots[4] + span * 0.35);
+  const points = Array.from({ length: 81 }, (_, index) => {
+    const rank = start + ((end - start) * index) / 80;
+    return [Math.round(rank), Math.round(probability(rank) * 1000) / 10];
+  });
+  const userRank = validCount(state.currentRank ?? state.summary?.predicted_user_rank ?? state.summary?.user_rank);
+  setText("probCurveTitle", `位次 → 录取概率曲线 · ${item.school} ${item.major}`);
+  paintChart("chartProbCurve", {
+    grid: { left: 52, right: 24, top: 24, bottom: 40 },
+    tooltip: { trigger: "axis", formatter: (items) => `位次 ${formatInt(items[0].value[0])}<br/>录取概率 <b>${items[0].value[1]}%</b>` },
+    xAxis: { type: "value", min: start, max: end, ...CHART_AXIS, name: "考生位次", nameLocation: "middle", nameGap: 26, axisLabel: { ...CHART_AXIS.axisLabel, formatter: (value) => formatInt(value) } },
+    yAxis: { type: "value", min: 0, max: 100, ...CHART_AXIS, axisLabel: { ...CHART_AXIS.axisLabel, formatter: "{value}%" } },
+    series: [{
+      type: "line",
+      data: points,
+      showSymbol: false,
+      lineStyle: { width: 3, color: "#1558b0" },
+      areaStyle: { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "rgba(21,88,176,.22)" }, { offset: 1, color: "rgba(21,88,176,0)" }] } },
+      markLine: {
+        symbol: "none",
+        silent: true,
+        lineStyle: { color: "rgba(16,33,61,.35)", type: "dashed" },
+        label: { color: "#52627a", fontSize: 10, formatter: ({ data }) => data.name },
+        data: knots.map((rank, index) => ({ xAxis: rank, name: `q${String(levels[index] * 100).padStart(2, "0")}` })),
+      },
+      markPoint: userRank && userRank >= start && userRank <= end ? {
+        symbol: "circle",
+        symbolSize: 14,
+        itemStyle: { color: "#c96b12", borderColor: "#fff", borderWidth: 2 },
+        label: { show: true, position: "top", color: "#c96b12", fontWeight: 900, formatter: () => `你 ${Math.round(probability(userRank) * 100)}%` },
+        data: [{ coord: [userRank, Math.round(probability(userRank) * 1000) / 10] }],
+      } : undefined,
+    }],
+  }, JSON.stringify([item.unit_id, knots, userRank]));
+}
+
+function renderSourceCharts() {
+  renderModelLabCharts();
+  const rows = coverageStats(state.resources?.coverage).map(([label, count, total]) => ({ label, count, total, percent: total > 0 ? (count / total) * 100 : 0 }));
+  if (rows.length) {
+    paintChart("chartCoverage", {
+      grid: { left: 92, right: 96, top: 6, bottom: 6 },
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: ([entry]) => `${entry.name}<br/>${coverageCountText(rows[entry.dataIndex].count, rows[entry.dataIndex].total)}` },
+      xAxis: { type: "value", max: 100, show: false },
+      yAxis: { type: "category", inverse: true, data: rows.map((row) => row.label), ...CHART_AXIS, axisLine: { show: false } },
+      series: [{
+        type: "bar",
+        data: rows.map((row) => ({
+          value: Math.round(row.percent * 10) / 10,
+          itemStyle: { color: row.percent >= 90 ? "#16865a" : row.percent >= 60 ? "#1558b0" : "#c96b12" },
+        })),
+        barWidth: 12,
+        showBackground: true,
+        backgroundStyle: { color: "rgba(21,88,176,.05)", borderRadius: 6 },
+        itemStyle: { borderRadius: 6 },
+        label: { show: true, position: "right", color: "#10213d", fontWeight: 800, fontSize: 11, formatter: ({ dataIndex }) => `${formatCount(rows[dataIndex].count)}/${formatCount(rows[dataIndex].total)}` },
+        animationDelay: (index) => index * 90,
+      }],
+    }, JSON.stringify(rows));
+  }
+  const report = state.modelReport;
+  const metrics = report?.crossfit_calibration?.median_calibrated_metrics || report?.time_out_2026_metrics_without_future_plan;
+  if (metrics) {
+    const bands = [["误差 5% 以内", metrics.within_5pct], ["误差 10% 以内", metrics.within_10pct], ["误差 20% 以内", metrics.within_20pct]]
+      .filter(([, value]) => Number.isFinite(Number(value)));
+    paintChart("chartModel", {
+      grid: { left: 92, right: 56, top: 6, bottom: 6 },
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: ([entry]) => `${entry.name}<br/><b>${entry.value}%</b> 的专业组合` },
+      xAxis: { type: "value", max: 100, show: false },
+      yAxis: { type: "category", inverse: true, data: bands.map(([label]) => label), ...CHART_AXIS, axisLine: { show: false } },
+      series: [{
+        type: "bar",
+        data: bands.map(([, value]) => Math.round(Number(value) * 1000) / 10),
+        barWidth: 16,
+        showBackground: true,
+        backgroundStyle: { color: "rgba(21,88,176,.05)", borderRadius: 8 },
+        itemStyle: { color: "#1558b0", borderRadius: 8 },
+        label: { show: true, position: "right", color: "#10213d", fontWeight: 800, formatter: "{c}%" },
+        animationDelay: (index) => index * 140,
+      }],
+    }, JSON.stringify(bands));
+  }
 }
 
 function riskTone(item) {
@@ -1440,87 +1936,70 @@ function handleCollegesChatQuestionClick(event) {
   animateCollegesChatQuestion(details, shouldOpen);
 }
 
+function diagnosticMetrics() {
+  const report = state.modelReport;
+  // 与资料说明页口径一致：优先用五折交叉校准后的中位指标。
+  return report?.crossfit_calibration?.median_calibrated_metrics || report?.time_out_2026_metrics_without_future_plan || null;
+}
+
 function renderPrecisionPanels() {
   const diagnostic = el("diagnosticPanel");
   if (!diagnostic) return;
-
-  const report = state.modelReport;
-  const metrics = report?.time_out_2026_metrics_without_future_plan;
+  const metrics = diagnosticMetrics();
   if (!metrics) {
-    diagnostic.innerHTML = `<p>模型报告未提供。</p>`;
+    diagnostic.innerHTML = `<p class="dash-note">模型报告未提供。</p>`;
     return;
   }
-  const rows = [
-    ["回测样本", metrics.rows, "条"],
-    ["平均绝对位次误差", metrics.mae_rank, "名"],
-    ["位次误差中位数", metrics.median_ae_rank, "名"],
-    ["误差在10%内", metrics.within_10pct, "%"],
-  ].filter(([, value]) => value !== null && value !== undefined && Number.isFinite(Number(value)));
-  diagnostic.innerHTML = rows.map(([label, value, unit]) => {
-    const formatted = unit === "%" ? `${(Number(value) * 100).toFixed(1)}%` : `${formatInt(value)}${unit}`;
-    return `<div class="diagnostic-row" style="grid-template-columns:minmax(0,1fr) auto"><span>${escapeHtml(label)}</span><strong class="diagnostic-value">${escapeHtml(formatted)}</strong></div>`;
-  }).join("") || `<p>模型报告未提供。</p>`;
-}
-
-function renderLifeGrid() {
-  const node = el("lifeGrid");
-  if (!node) return;
-  const rows = [...state.list].sort((a, b) => coverageScore(b) - coverageScore(a)).slice(0, 96);
-  node.innerHTML = rows.map((item) => `
-    <article class="life-card dense-life-card" data-unit="${escapeHtml(item.unit_id)}">
-      <div class="life-card-head">
-        ${logoHtml(item.logo_asset || state.logoCache[logoKey(item.school)], item.school)}
-        <div>
-          <span>${escapeHtml(schoolOwnership(item))} · ${escapeHtml(textOr(item.school_tier_label, "层次待核验"))}</span>
-          <h3>${escapeHtml(item.school)}</h3>
-        </div>
-      </div>
-      <p><strong>宿舍</strong>：${escapeHtml(dormText(item))}</p>
-      <p><strong>食堂</strong>：${escapeHtml(canteenText(item))}</p>
-      <p><strong>位置</strong>：${escapeHtml(schoolCity(item))}</p>
-      <small>可用资料项 ${coverageScore(item)}/6 · 点击查看院校详情</small>
-    </article>
-  `).join("");
-}
-
-function renderLeftAnalytics() {
-  const rankBars = el("leftRankBars");
-  const structureBars = el("leftBandBars");
-  if (!rankBars || !structureBars) return;
-  const mapped = validCount(state.summary?.score_mapped_rank ?? state.summary?.user_rank);
-  const predicted = validCount(state.summary?.predicted_user_rank ?? state.summary?.user_rank);
-  const ranks = state.list.map(recommendationRankValue).filter((rank) => rank < 999999999);
-  const avgRank = ranks.length ? Math.round(ranks.reduce((sum, rank) => sum + rank, 0) / ranks.length) : null;
-  const delta = mapped !== null && predicted !== null ? predicted - mapped : null;
-  setText("leftRankDelta", delta === null ? "待核验" : delta ? `${delta > 0 ? "+" : ""}${formatInt(delta)}` : "一致");
-  const rankRows = [
-    ["当前分数映射", mapped],
-    ["系统位次结果", predicted],
-    ["候选均值", avgRank],
+  const stats = [
+    ["回测样本", formatInt(metrics.rows), "个专业组合"],
+    ["平均误差", formatInt(metrics.mae_rank), "名"],
+    ["误差中位数", formatInt(metrics.median_ae_rank), "名"],
   ];
-  const maxRank = Math.max(...rankRows.map(([, value]) => value || 0), 1);
-  rankBars.innerHTML = rankRows.map(([label, value], index) => `
-    <div class="left-bar-row">
-      <span>${label}</span>
-      <div class="left-bar"><i style="--value:${value === null ? 0 : Math.round((value / maxRank) * 100)}%;--bar:${index === 1 ? "#16865a" : "#1558b0"}"></i></div>
-      <b>${value === null ? "待核验" : formatInt(value)}</b>
-    </div>
+  diagnostic.innerHTML = stats.map(([label, value, unit]) => `
+    <div class="diag-stat"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(unit)}</small></div>
   `).join("");
+  renderDiagChart();
+}
 
-  const structureRows = coverageStats(state.resources?.coverage);
-  const basicCoverage = structureRows.find(([label]) => label === "院校基础资料");
-  setText("leftBandTotal", basicCoverage?.[2] > 0 ? `${((basicCoverage[1] / basicCoverage[2]) * 100).toFixed(1)}%` : "待提供");
-  structureBars.innerHTML = structureRows.map(([label, count, total], index) => {
-    const percent = total > 0 ? Math.min(100, (count / total) * 100) : 0;
-    const color = index < 3 ? "#1558b0" : "#16865a";
-    return `
-    <div class="left-bar-row">
-      <span>${label}</span>
-      <div class="left-bar"><i style="--value:${percent.toFixed(1)}%;--bar:${color}"></i></div>
-      <b>${coverageCountText(count, total)}</b>
-    </div>
-  `;
-  }).join("") || `<div class="left-bar-row"><span>覆盖统计</span><b>未提供</b></div>`;
+function renderDiagChart() {
+  const metrics = diagnosticMetrics();
+  if (!metrics) return;
+  const rings = [["误差 ≤5%", metrics.within_5pct], ["误差 ≤10%", metrics.within_10pct], ["误差 ≤20%", metrics.within_20pct]]
+    .filter(([, value]) => Number.isFinite(Number(value)));
+  const key = JSON.stringify(rings);
+  const previousKey = state.charts.chartDiag?.__key;
+  paintChart("chartDiag", {
+    tooltip: { show: false },
+    series: rings.map(([label, value], index) => ({
+      type: "gauge",
+      center: [`${((index * 2 + 1) / (rings.length * 2)) * 100}%`, "52%"],
+      radius: "78%",
+      startAngle: 90,
+      endAngle: -270,
+      min: 0,
+      max: 100,
+      pointer: { show: false },
+      progress: { show: true, roundCap: true, width: 10, itemStyle: { color: "#1558b0" } },
+      axisLine: { lineStyle: { width: 10, color: [[1, "rgba(21,88,176,.1)"]] } },
+      splitLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { show: false },
+      title: { offsetCenter: [0, "34%"], color: "#66758a", fontSize: 11, fontWeight: 800 },
+      detail: { offsetCenter: [0, "-8%"], valueAnimation: true, formatter: "{value}%", color: "#07336b", fontSize: 18, fontWeight: 900 },
+      animationDuration: 1600,
+      animationDurationUpdate: 1600,
+      animationEasingUpdate: "cubicOut",
+      animationDelay: index * 180,
+      animationDelayUpdate: index * 180,
+      // 先画 0，下一帧再更新到真实值：圆环才会转起来，而不只是数字在滚动。
+      data: [{ value: 0, name: label }],
+    })),
+  }, key);
+  const chart = state.charts.chartDiag;
+  if (!chart || chart.__key !== key || previousKey === key) return;
+  requestAnimationFrame(() => chart.setOption({
+    series: rings.map(([label, value]) => ({ data: [{ value: Math.round(Number(value) * 1000) / 10, name: label }] })),
+  }));
 }
 
 function renderRiskChart() {
@@ -1536,8 +2015,10 @@ function renderRiskChart() {
   const total = data.reduce((sum, item) => sum + item.value, 0);
   chart.setOption({
     animation: true,
-    animationDuration: 780,
+    animation: !prefersReducedMotion(),
+    animationDuration: 1600,
     animationEasing: "cubicOut",
+    animationDurationUpdate: 800,
     tooltip: {
       trigger: "item",
       borderWidth: 1,
@@ -1558,6 +2039,7 @@ function renderRiskChart() {
       minAngle: 2,
       padAngle: 2,
       avoidLabelOverlap: true,
+      animationType: "expansion",
       label: {
         color: "#10213d",
         fontSize: 11,
@@ -1630,16 +2112,6 @@ function riskOrderValue(item) {
   return 5;
 }
 
-function selectedRowsByRisk() {
-  return [...state.list].sort((a, b) => {
-    const riskDiff = riskOrderValue(a) - riskOrderValue(b);
-    if (riskDiff) return riskDiff;
-    const rankDiff = recommendationRankValue(a) - recommendationRankValue(b);
-    if (rankDiff) return rankDiff;
-    return compareProbabilityDesc(a, b);
-  });
-}
-
 function mobileOverviewPriorityRows() {
   const rows = [...state.list].filter((item) => item?.unit_id);
   const compare = (a, b) => {
@@ -1682,12 +2154,15 @@ function renderResources() {
   const ready = asNumber(resources.logo_ready_count, 0);
   const total = asNumber(resources.logo_total_count, 0);
   const cards = (resources.source_cards || []).filter((item) => !String(item.title || "").includes("校徽"));
-  setText("resourceFiles", formatCount(coverage.source_files ?? resources.total_files ?? resources.guizhou_files));
+  ["resourceFiles", "guideCount", "logoCoverage"].forEach((id) => el(id)?.classList.remove("value-loading"));
+  setCount("resourceFiles", coverage.source_files ?? resources.total_files ?? resources.guizhou_files);
   const schoolsWithBasic = validCount(coverage.schools_with_basic);
   const schoolsTotal = validCount(coverage.schools_total);
-  setText("guideCount", schoolsWithBasic !== null && schoolsTotal !== null
-    ? coveragePercentText(schoolsWithBasic, schoolsTotal)
-    : formatCount(resources.school_guide_count ?? resources.school_ladder_count));
+  if (schoolsWithBasic !== null && schoolsTotal > 0) {
+    setCount("guideCount", (schoolsWithBasic / schoolsTotal) * 100, (value) => `${value.toFixed(1)}%`);
+  } else {
+    setText("guideCount", formatCount(resources.school_guide_count ?? resources.school_ladder_count));
+  }
   updateLogoCount();
   const stack = el("sourceStack");
   if (stack) {
@@ -1699,28 +2174,189 @@ function renderResources() {
       </div>
     `).join("");
   }
-  const board = el("sourcesBoard");
-  if (board) {
-    board.innerHTML = algorithmBriefHtml() + [...cards, ...resourceCoverageCards(coverage)].map((item) => `
-      <article class="source-card">
-        <span>${escapeHtml(item.status || item.confidence || "-")}</span>
-        <h3>${escapeHtml(item.title)}</h3>
-        <p>${escapeHtml(item.description || "")}</p>
-      </article>
-    `).join("");
+  renderSources();
+}
+
+
+const CHART_TOOLTIP = {
+  borderWidth: 1,
+  borderColor: "#d9e2ef",
+  backgroundColor: "rgba(255,255,255,.97)",
+  textStyle: { color: "#10213d", fontSize: 12 },
+};
+
+const CHART_AXIS = {
+  axisTick: { show: false },
+  axisLine: { lineStyle: { color: "#d9e2ef" } },
+  axisLabel: { color: "#66758a", fontSize: 11 },
+  splitLine: { lineStyle: { color: "rgba(129,151,178,.2)", type: "dashed" } },
+  nameTextStyle: { color: "#8a98ab", fontSize: 11 },
+};
+
+// 统一入口：节点看不见（所在视图未打开）时先不画，切到该视图再画，生长动画才看得到。
+function paintChart(id, option, key, onClick) {
+  const node = el(id);
+  if (!node || !window.echarts || !node.offsetWidth) return;
+  const chart = getChart(id);
+  if (!chart || (key !== undefined && chart.__key === key)) return;
+  chart.__key = key;
+  chart.setOption({
+    animation: !prefersReducedMotion(),
+    animationDuration: 1400,
+    animationEasing: "cubicOut",
+    animationDurationUpdate: 700,
+    ...option,
+    tooltip: { ...CHART_TOOLTIP, ...(option.tooltip || {}) },
+  }, true);
+  if (onClick && !chart.__clickBound) {
+    chart.on("click", onClick);
+    chart.__clickBound = true;
   }
+}
+
+// 左栏：冲稳保各层的志愿数、平均录取概率和预测位次范围。
+function renderTierSummary() {
+  const node = el("tierSummary");
+  if (!node) return;
+  const tiers = [["冲", ["强冲", "冲"]], ["稳", ["稳"]], ["保", ["保"]], ["兜底", ["兜底"]]];
+  node.innerHTML = tiers.map(([label, levels], index) => {
+    const rows = state.list.filter((item) => levels.includes(item.risk_level));
+    const probabilities = rows.map(admissionProbability).filter((value) => value !== null);
+    const average = probabilities.length ? probabilities.reduce((sum, value) => sum + value, 0) / probabilities.length : null;
+    const ranks = rows.map(recommendationRankValue).filter((rank) => rank < 999999999);
+    const range = ranks.length ? `${formatInt(Math.min(...ranks))}–${formatInt(Math.max(...ranks))} 名` : "暂无";
+    return `
+      <div class="tier-row" style="--tier-color:${RISK_COLORS[levels[levels.length - 1]]};--i:${index}">
+        <span class="tier-name"><i></i>${label}<b>${rows.length}</b></span>
+        <strong>${average === null ? "-" : formatPercent(average)}</strong>
+        <div class="tier-bar"><i style="width:${average === null ? 0 : (average * 100).toFixed(1)}%"></i></div>
+        <small title="预测位次 ${range}">${range}</small>
+      </div>
+    `;
+  }).join("");
+}
+
+// 所有位次类图表统一：坐标轴范围一定包含考生位次，“你的位次”虚线始终可见。
+function rankAxisRange(values, userRank, padRatio = 0.06) {
+  const list = values.filter((value) => Number.isFinite(value) && value > 0);
+  if (userRank) list.push(userRank);
+  if (!list.length) return {};
+  const min = Math.min(...list);
+  const max = Math.max(...list);
+  const pad = Math.max(200, (max - min) * padRatio);
+  return { min: Math.max(1, Math.floor(min - pad)), max: Math.ceil(max + pad) };
+}
+
+const USER_RANK_LINE_COLOR = "#c96b12";
+
+function userRankMarkLine(userRank, axis = "xAxis") {
+  if (!userRank) return undefined;
+  return {
+    symbol: "none",
+    silent: true,
+    lineStyle: { color: USER_RANK_LINE_COLOR, type: "dashed", width: 1.5 },
+    label: { formatter: `你的位次 ${formatInt(userRank)}`, color: USER_RANK_LINE_COLOR, fontWeight: 800, fontSize: 11, position: axis === "xAxis" ? "end" : "insideEndTop" },
+    data: [{ [axis]: userRank }],
+  };
+}
+
+function renderDashboardCharts() {
+  renderScatterChart();
+  renderProbChart();
+  renderCityChart();
+}
+
+function renderScatterChart() {
+  const userRank = validCount(state.currentRank ?? state.summary?.predicted_user_rank ?? state.summary?.user_rank);
+  const points = state.list.map((item) => {
+    const rank = nullableHistoryValue(item.rank_2026) ?? historyRecord(item, 2026).rank;
+    const probability = admissionProbability(item);
+    if (rank === null || probability === null) return null;
+    return { value: [rank, Math.round(probability * 1000) / 10], unit: item.unit_id, school: item.school, major: item.major, risk: item.risk_level };
+  }).filter(Boolean);
+  const series = ["强冲", "冲", "稳", "保", "兜底"].map((risk) => ({
+    name: risk,
+    type: "scatter",
+    symbolSize: 11,
+    data: points.filter((point) => point.risk === risk),
+    itemStyle: { color: RISK_COLORS[risk], opacity: .85, borderColor: "#fff", borderWidth: 1 },
+    emphasis: { scale: 1.6 },
+    animationDelay: (index) => index * 20,
+  })).filter((item) => item.data.length);
+  if (series.length) series[0].markLine = userRankMarkLine(userRank);
+  paintChart("chartScatter", {
+    grid: { left: 46, right: 18, top: 34, bottom: 40 },
+    legend: { top: 0, right: 0, itemWidth: 9, itemHeight: 9, icon: "circle", textStyle: { color: "#52627a", fontSize: 11, fontWeight: 700 } },
+    tooltip: {
+      trigger: "item",
+      formatter: ({ data }) => `<b>${escapeHtml(data.school)}</b><br/>${escapeHtml(data.major)}<br/>2026 投档 ${formatInt(data.value[0])} 名 · 录取概率 ${data.value[1]}%`,
+    },
+    xAxis: { type: "value", inverse: true, ...rankAxisRange(points.map((point) => point.value[0]), userRank), name: "2026 投档位次", nameLocation: "middle", nameGap: 26, ...CHART_AXIS, axisLabel: { ...CHART_AXIS.axisLabel, formatter: (value) => formatInt(value) } },
+    yAxis: { type: "value", min: 0, max: 100, name: "录取概率 %", ...CHART_AXIS },
+    series,
+  }, JSON.stringify([points.map((point) => point.unit), userRank]), ({ data }) => data?.unit && openDetail(data.unit));
+}
+
+function renderProbChart() {
+  const bins = Array(10).fill(0);
+  state.list.forEach((item) => {
+    const probability = admissionProbability(item);
+    if (probability !== null) bins[Math.min(9, Math.floor(probability * 10))] += 1;
+  });
+  paintChart("chartProb", {
+    grid: { left: 30, right: 10, top: 14, bottom: 26 },
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: ([entry]) => `${entry.name}–${Number.parseInt(entry.name, 10) + 10}%<br/><b>${entry.value}</b> 个志愿` },
+    xAxis: { type: "category", data: bins.map((_, index) => `${index * 10}%`), ...CHART_AXIS, splitLine: { show: false } },
+    yAxis: { type: "value", minInterval: 1, ...CHART_AXIS },
+    series: [{
+      type: "bar",
+      data: bins.map((value, index) => ({ value, itemStyle: { color: index < 3 ? RISK_COLORS["强冲"] : index < 6 ? RISK_COLORS["冲"] : index < 8 ? RISK_COLORS["稳"] : RISK_COLORS["保"] } })),
+      barWidth: "60%",
+      itemStyle: { borderRadius: [4, 4, 0, 0] },
+      animationDelay: (index) => index * 70,
+    }],
+  }, JSON.stringify(bins));
+}
+
+function renderCityChart() {
+  const counts = new Map();
+  state.list.forEach((item) => {
+    const city = schoolCity(item);
+    if (city !== "城市待核验") counts.set(city, (counts.get(city) || 0) + 1);
+  });
+  const rows = [...counts].sort((a, b) => b[1] - a[1]).slice(0, 8);
+  paintChart("chartCity", {
+    grid: { left: 64, right: 28, top: 6, bottom: 6 },
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: ([entry]) => `${entry.name}<br/><b>${entry.value}</b> 个志愿` },
+    xAxis: { type: "value", show: false },
+    yAxis: { type: "category", inverse: true, data: rows.map(([city]) => city), ...CHART_AXIS, axisLine: { show: false } },
+    series: [{
+      type: "bar",
+      data: rows.map(([, count]) => count),
+      barWidth: 11,
+      showBackground: true,
+      backgroundStyle: { color: "rgba(21,88,176,.05)", borderRadius: 6 },
+      itemStyle: { color: "#1558b0", borderRadius: 6 },
+      label: { show: true, position: "right", color: "#10213d", fontWeight: 800, fontSize: 11 },
+      animationDelay: (index) => index * 80,
+    }],
+  }, JSON.stringify(rows));
 }
 
 function renderPriorityList() {
   const node = el("priorityList");
   if (!node) return;
-  const rows = selectedRowsByRisk().slice(0, 96);
+  // 按冲 → 稳 → 保 → 兜底排列全部 96 个志愿，同一层内位次难的在前。
+  const rows = [...state.list].sort((a, b) =>
+    (riskOrderValue(a) - riskOrderValue(b))
+    || (recommendationRankValue(a) - recommendationRankValue(b))
+    || compareProbabilityDesc(a, b));
   node.innerHTML = rows.map((item, index) => {
     const rankText = item.rank_range || `${formatInt(item.rank_low || item.predicted_rank_low || item.predicted_rank || 0)}-${formatInt(item.rank_high || item.predicted_rank_high || item.predicted_rank || 0)}`;
     const scoreText = item.score_range || `${item.predicted_score_low || item.score_low || "-"}-${item.predicted_score_high || item.score_high || "-"}`;
     const info = `${scoreText} / ${rankText} · ${rankGapText(item)}`;
     return `
-      <article class="priority-card priority-row priority-${riskTone(item)}" data-unit="${escapeHtml(item.unit_id)}">
+      <article class="priority-card priority-row priority-${riskTone(item)}" data-unit="${escapeHtml(item.unit_id)}" style="--i:${index}">
         <strong class="priority-index">${index + 1}</strong>
         ${logoHtml(item.logo_asset || state.logoCache[logoKey(item.school)], item.school)}
         <div class="priority-main">
@@ -1941,18 +2577,95 @@ function renderProfile() {
     markEntering(node, `profile:${profile.school}:${state.activeProfileTab}`);
     return;
   }
+  // 每个标签页只放自己的资料：决策摘要只在“基础信息”，来源只在“公开官网”，不再每页重复。
   const tabMap = {
-    basic: [...(sections.basic || []), ...(sections.admission || []), ...decisionRows, ...sourceRows],
-    admission: [...(sections.admission || []), ...decisionRows, ...sourceRows],
-    major_strength: [...(sections.major_strength || []), ...decisionRows, ...sourceRows],
-    life: [...collegesChatCards(state.selectedCollegesChat), ...decisionRows, ...(sections.life || []), ...(sections.basic || []), ...sourceRows],
-    development: [...(sections.development || []), ...decisionRows, ...sourceRows],
+    basic: [...(sections.basic || []), ...decisionRows],
+    admission: [...(sections.admission || [])],
+    major_strength: [...(sections.major_strength || [])],
+    life: [...collegesChatCards(state.selectedCollegesChat), ...(sections.life || [])],
+    development: [...(sections.development || [])],
   };
   const rows = uniqueRows(tabMap[state.activeProfileTab] || tabMap.basic).slice(0, 36);
   const collegesChatHtml = state.activeProfileTab === "life" ? collegesChatPanel(state.selectedCollegesChat) : "";
-  node.innerHTML = header + collegesChatHtml + `<div class="profile-life-board">${rows.map(profileCard).join("") || `<article class="info-card profile-info-card"><strong>暂无结构化资料</strong><small>不把不确定内容包装成结论。</small></article>`}</div>`;
+  const majorsHtml = state.activeProfileTab === "admission"
+    ? `<section class="insight-panel chart-card profile-chart-card">
+        <div class="panel-title">
+          <h1>各专业位次：2026 实际与 2027 预测</h1>
+          <p>空心点是 2026 投档位次，实心点是 2027 预测，虚线是你的位次；越靠右越难考。</p>
+        </div>
+        <div class="chart-box" id="chartMajors" style="height:${Math.min(640, 80 + Math.min((profile.majors || []).length, 18) * 28)}px"></div>
+      </section>`
+    : "";
+  const emptyCard = `<article class="info-card profile-info-card"><strong>暂无可核验的公开资料</strong><small>不把不确定内容包装成结论，等待公开资料补充。</small></article>`;
+  node.innerHTML = header + majorsHtml + collegesChatHtml + `<div class="profile-life-board">${rows.map(profileCard).join("") || (majorsHtml ? "" : emptyCard)}</div>`;
   hydrateCollegesChatQuestions(node);
   markEntering(node, `profile:${profile.school}:${state.activeProfileTab}`);
+  if (majorsHtml) renderMajorsChart();
+}
+
+function renderMajorsChart() {
+  const profile = state.selectedProfile;
+  const rows = (profile?.majors || [])
+    .filter((major) => nullableHistoryValue(major.predicted_rank) !== null)
+    .sort((a, b) => asNumber(a.predicted_rank) - asNumber(b.predicted_rank))
+    .slice(0, 18);
+  if (!rows.length) return;
+  const userRank = validCount(state.currentRank ?? state.summary?.predicted_user_rank ?? state.summary?.user_rank);
+  const selectedId = state.selected?.unit_id;
+  paintChart("chartMajors", {
+    grid: { left: 150, right: 24, top: 30, bottom: 28 },
+    legend: { top: 0, left: 150, itemWidth: 10, itemHeight: 10, textStyle: { color: "#52627a", fontSize: 11, fontWeight: 700 } },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: { type: "shadow" },
+      formatter: (items) => {
+        const row = rows[items[0].dataIndex];
+        return `<b>${escapeHtml(row.major)}</b><br/>2026 投档 ${formatInt(row.rank_2026)} 名 · ${row.score_2026 ?? "-"} 分<br/>2027 预测 ${formatInt(row.predicted_rank)} 名`;
+      },
+    },
+    xAxis: { type: "value", inverse: true, ...rankAxisRange(rows.flatMap((row) => [nullableHistoryValue(row.rank_2026), nullableHistoryValue(row.predicted_rank)]), userRank), ...CHART_AXIS, axisLabel: { ...CHART_AXIS.axisLabel, formatter: (value) => formatInt(value) } },
+    yAxis: {
+      type: "category",
+      inverse: true,
+      data: rows.map((row) => row.major),
+      ...CHART_AXIS,
+      axisLine: { show: false },
+      axisLabel: { color: "#10213d", fontSize: 12, width: 136, overflow: "truncate" },
+    },
+    series: [
+      {
+        type: "custom",
+        silent: true,
+        z: 1,
+        renderItem: (params, api) => {
+          if (!api.value(1) || !api.value(2)) return null;
+          const from = api.coord([api.value(1), api.value(0)]);
+          const to = api.coord([api.value(2), api.value(0)]);
+          return { type: "line", shape: { x1: from[0], y1: from[1], x2: to[0], y2: to[1] }, style: { stroke: "rgba(21,88,176,.25)", lineWidth: 4, lineCap: "round" } };
+        },
+        encode: { x: [1, 2], y: 0 },
+        data: rows.map((row, index) => [index, nullableHistoryValue(row.rank_2026), nullableHistoryValue(row.predicted_rank)]),
+      },
+      {
+        name: "2026 实际",
+        type: "scatter",
+        symbolSize: 10,
+        z: 2,
+        data: rows.map((row) => nullableHistoryValue(row.rank_2026)),
+        itemStyle: { color: "#fff", borderColor: "#1558b0", borderWidth: 2 },
+      },
+      {
+        name: "2027 预测",
+        type: "scatter",
+        symbolSize: 12,
+        z: 3,
+        data: rows.map((row) => ({ value: nullableHistoryValue(row.predicted_rank), itemStyle: row.unit_id === selectedId ? { color: "#c96b12" } : undefined })),
+        itemStyle: { color: "#1558b0", borderColor: "#fff", borderWidth: 1.5 },
+        animationDelay: (index) => index * 50,
+        markLine: userRankMarkLine(userRank),
+      },
+    ],
+  }, JSON.stringify([profile.school, rows.map((row) => row.unit_id), userRank, selectedId]));
 }
 
 function renderDetail() {
@@ -1961,12 +2674,19 @@ function renderDetail() {
   const profile = state.selectedProfile;
   if (!node) return;
   if (!item) {
+    node.dataset.unit = "";
     node.innerHTML = `
       <div class="empty-state detail-empty">
         <strong>等待选择院校</strong>
         <span>点击总览或推荐表会更新这里；点击“详情”进入完整院校详情。</span>
       </div>
     `;
+    return;
+  }
+  // 同一院校的补充数据（如生活问卷）在入场动画播放中到达时，等动画播完再安静更新，不重播。
+  window.clearTimeout(node.__deferRender);
+  if (node.dataset.unit === item.unit_id && node.classList.contains("is-entering")) {
+    node.__deferRender = window.setTimeout(renderDetail, 1250);
     return;
   }
   node.innerHTML = `
@@ -1987,7 +2707,7 @@ function renderDetail() {
       <div><span>录取概率</span><strong>${probabilityText(item)}</strong></div>
       <div><span>模型置信</span><strong>${formatPercent(item.confidence_score)}</strong></div>
       <div><span>学费</span><strong>${escapeHtml(tuitionText(item))}</strong></div>
-      <div><span>资料覆盖</span><strong>${escapeHtml(profileCoverageText(profile))}</strong></div>
+      <div><span>资料覆盖</span>${detailCoverageHtml(profile)}</div>
     </div>
     <section class="detail-section">
       <h3>2024—2027录取数据与预测</h3>
@@ -2021,7 +2741,11 @@ function renderDetail() {
     </section>
   `;
   // 只有换院校时才整块入场；同一院校的二次数据回填不再重放动画。
-  markEntering(node, `detail:${item.unit_id}`);
+  if (node.dataset.unit !== item.unit_id) {
+    node.dataset.unit = item.unit_id;
+    replayEntering(node, "is-entering", 1200);
+  }
+  animateDetailCoverage(node, item);
 }
 
 function renderRankTrendMini() {
@@ -2029,6 +2753,9 @@ function renderRankTrendMini() {
   const chart = getChart("rankTrendMini");
   if (!chart) return;
   const selected = state.selected || state.list[0] || {};
+  // 列表数据不带历年位次，详情回来前先保持上一条曲线，避免折线先塌成空点再跳一次。
+  const hasHistory = Boolean(selected.history || selected.history_2024 || selected.history_2025 || selected.history_2026);
+  if (!hasHistory && chart.__trendKey) return;
 
   const ranks = [2024, 2025, 2026, 2027].map((year) => {
     const record = historyRecord(selected, year);
@@ -2041,21 +2768,33 @@ function renderRankTrendMini() {
   const headline = gap === null
     ? availableRanks.length ? "院校录取位次历史" : "暂无可展示的位次历史"
     : gap >= 0 ? `2027预测：你领先 ${formatInt(gap)} 名` : `2027预测：你落后 ${formatInt(Math.abs(gap))} 名`;
-  const rankAxis = availableRanks.length
-    ? { min: Math.max(1, Math.floor(Math.min(...availableRanks) * 0.92)), max: Math.ceil(Math.max(...availableRanks) * 1.08) }
-    : {};
+  const rankAxis = rankAxisRange(availableRanks, applicantRank, 0.12);
+  // 缺数据的年份不留空值：折线始终保持 4 个点，切换院校时才能连续变形。
+  // 缺失点用相邻年份的值占位，但圆点、数字和那一段线都透明，不展示编造的数据。
+  const known = ranks.map((value, index) => (value !== null && value > 0 ? index : -1)).filter((index) => index >= 0);
+  const filled = ranks.map((value, index) => {
+    if (!known.length) return null;
+    if (known.includes(index)) return value;
+    const before = known.filter((k) => k < index).pop();
+    const after = known.find((k) => k > index);
+    if (before === undefined) return ranks[after];
+    if (after === undefined) return ranks[before];
+    return Math.round(ranks[before] + ((ranks[after] - ranks[before]) * (index - before)) / (after - before));
+  });
+  const trendData = filled.map((value, index) => (known.includes(index)
+    ? { value }
+    : { value, missing: true, symbolSize: 0, label: { show: false }, itemStyle: { opacity: 0 } }));
+  const visibleRange = known.length ? { gte: known[0], lte: known[known.length - 1], color: "#c96b12" } : { gte: 0, lte: 3, color: "#c96b12" };
   const trendKey = JSON.stringify([selected.unit_id, ranks, applicantRank]);
   if (chart.__trendKey === trendKey) return;
-  // 只有首帧允许动画；之后切换院校直接换数据，避免曲线反复重绘造成的闪动。
-  const firstPaint = !chart.__trendPainted;
-  chart.__trendPainted = true;
+  // 首帧从左到右画线；之后切换院校时，折线、坐标轴和数字都从上一条平滑变换过去。
   chart.__trendKey = trendKey;
   chart.setOption({
-    animation: firstPaint && !prefersReducedMotion(),
-    animationDuration: 240,
-    animationDurationUpdate: 0,
+    animation: !prefersReducedMotion(),
+    animationDuration: 1800,
+    animationDurationUpdate: 1000,
     animationEasing: "cubicOut",
-    animationEasingUpdate: "cubicOut",
+    animationEasingUpdate: "cubicInOut",
     grid: { left: 62, right: 35, top: 94, bottom: 30 },
     title: {
       text: headline,
@@ -2072,7 +2811,7 @@ function renderRankTrendMini() {
       backgroundColor: "rgba(255,255,255,.98)",
       textStyle: { color: "#10213d", fontSize: 12 },
       formatter: (items) => items
-        .filter((entry) => entry.value !== null && entry.value !== undefined && Number.isFinite(Number(entry.value)))
+        .filter((entry) => !entry.data?.missing && entry.value !== null && entry.value !== undefined && Number.isFinite(Number(entry.value)))
         .map((entry) => `${entry.marker}${entry.seriesName}: ${formatInt(entry.value)}名`)
         .join("<br/>"),
     },
@@ -2091,6 +2830,14 @@ function renderRankTrendMini() {
       axisLine: { lineStyle: { color: "#d9e2ef" } },
       axisLabel: { color: "#52627a", fontSize: 12, fontWeight: 800 },
     },
+    visualMap: {
+      show: false,
+      type: "piecewise",
+      dimension: 0,
+      seriesIndex: 0,
+      pieces: [visibleRange],
+      outOfRange: { color: "rgba(201,107,18,0)" },
+    },
     yAxis: {
       type: "value",
       inverse: true,
@@ -2107,14 +2854,117 @@ function renderRankTrendMini() {
       type: "line",
       smooth: 0.18,
       connectNulls: false,
-      data: ranks,
+      data: trendData,
       symbol: "circle",
       symbolSize: 11,
       lineStyle: { width: 3, color: "#c96b12", cap: "round" },
       itemStyle: { color: "#fff", borderColor: "#c96b12", borderWidth: 3 },
-      label: { show: true, position: "top", color: "#9a4d08", fontWeight: 900, fontSize: 10, formatter: ({ value }) => value == null ? "" : formatInt(value) },
+      label: { show: true, position: "top", color: "#9a4d08", fontWeight: 900, fontSize: 10, valueAnimation: true, formatter: ({ value }) => value == null ? "" : formatInt(value) },
+      markLine: userRankMarkLine(applicantRank, "yAxis"),
     }],
   });
+}
+
+// 表格里的位次迷你折线：位次越小越难考，画在上方；2027 预测用虚线连接。
+function rankSparkHtml(item) {
+  const values = [2024, 2025, 2026, 2027].map((year) => historyRecord(item, year).rank
+    ?? (year === 2026 ? nullableHistoryValue(item.rank_2026) : null)
+    ?? (year === 2027 ? nullableHistoryValue(item.predicted_rank || item.rank_mid) : null));
+  const known = values.map((value, index) => [index, value]).filter(([, value]) => value !== null && value > 0);
+  if (!known.length) return `<span class="spark-empty">暂无位次</span>`;
+  const width = 96;
+  const height = 30;
+  const pad = 4;
+  const ranks = known.map(([, value]) => value);
+  const min = Math.min(...ranks);
+  const range = Math.max(...ranks) - min || 1;
+  const point = ([index, value]) => [pad + (index * (width - pad * 2)) / 3, pad + ((value - min) / range) * (height - pad * 2)];
+  const history = known.filter(([index]) => index <= 2).map(point);
+  const forecast = known.find(([index]) => index === 3);
+  const solid = history.length > 1 ? `<polyline class="spark-line" points="${history.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ")}" />` : "";
+  const dashed = forecast && history.length
+    ? `<line class="spark-forecast" x1="${history[history.length - 1][0].toFixed(1)}" y1="${history[history.length - 1][1].toFixed(1)}" x2="${point(forecast)[0].toFixed(1)}" y2="${point(forecast)[1].toFixed(1)}" />`
+    : "";
+  const dots = known.map((entry) => {
+    const [x, y] = point(entry);
+    return `<circle class="${entry[0] === 3 ? "spark-dot forecast" : "spark-dot"}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" />`;
+  }).join("");
+  return `<svg class="rank-spark" viewBox="0 0 ${width} ${height}" aria-hidden="true">${solid}${dashed}${dots}</svg>`;
+}
+
+function rankTrendCellHtml(item) {
+  const record2026 = historyRecord(item, 2026);
+  const rank2026 = record2026.rank ?? nullableHistoryValue(item.rank_2026);
+  const score2026 = record2026.score ?? nullableHistoryValue(item.score_2026);
+  const predicted = nullableHistoryValue(item.predicted_rank || item.rank_mid);
+  let trend = "";
+  if (rank2026 !== null && predicted !== null) {
+    const delta = predicted - rank2026;
+    const flat = Math.abs(delta) < Math.max(800, rank2026 * 0.015);
+    trend = flat ? `<em class="trend-flat">基本持平</em>` : delta < 0 ? `<em class="trend-up">竞争增强</em>` : `<em class="trend-down">竞争放缓</em>`;
+  }
+  const missing = [2024, 2025].filter((year) => historyRecord(item, year).rank === null).length;
+  return `
+    <div class="trend-cell">
+      ${rankSparkHtml(item)}
+      <div class="trend-text">
+        <span><b>26年</b>${score2026 === null ? "-分" : `${formatInt(score2026)}分`} · ${rank2026 === null ? "待核验" : `${formatInt(rank2026)}名`}</span>
+        <span><b>27预测</b>${predicted === null ? "待核验" : `${formatInt(predicted)}名`} ${trend}</span>
+        ${missing ? `<small>${missing === 2 ? "24、25 年" : "有 1 年"}历史待核验</small>` : ""}
+      </div>
+    </div>
+  `;
+}
+
+function lifeCellHtml(item) {
+  const score = coverageScore(item);
+  const dots = Array.from({ length: 6 }, (_, index) => `<i class="${index < score ? "on" : ""}"></i>`).join("");
+  // 列表接口不带宿舍、食堂等原文，这里只显示资料完整度；具体内容在右侧详情里看。
+  return `
+    <div class="life-cell">
+      <div class="life-dots" title="可用资料 ${score}/6 项">${dots}<b>${score}/6</b></div>
+      <small class="${hasLifeData(item) ? "has-life" : ""}">${hasLifeData(item) ? "有学生生活问卷" : "暂无生活问卷"}</small>
+    </div>
+  `;
+}
+
+function tableRowHtml(item, index) {
+  const selected = state.selected?.unit_id === item.unit_id ? " selected-row" : "";
+  const plan2025 = historyRecord(item, 2025).plan;
+  const plan2026 = historyRecord(item, 2026).plan;
+  const planDelta = plan2025 !== null && plan2026 !== null ? plan2026 - plan2025 : null;
+  const planDeltaText = planDelta === null ? "计划变化待核验" : `较 2025 ${planDelta >= 0 ? "+" : ""}${planDelta}`;
+  return `
+    <tr class="${selected} table-risk-${riskTone(item)}" data-unit="${escapeHtml(item.unit_id)}" style="--i:${index}">
+      <td class="order-cell"><strong>${item.order || "-"}</strong></td>
+      <td>
+        <div class="school-cell">
+          ${logoHtml(item.logo_asset || state.logoCache[logoKey(item.school)], item.school)}
+          <div class="cell-title">
+            <strong>${escapeHtml(item.school)}</strong>
+            <span>${escapeHtml(item.major)}</span>
+            <small>${escapeHtml(schoolCity(item))} · ${escapeHtml(schoolOwnership(item))}</small>
+          </div>
+        </div>
+      </td>
+      <td class="risk-cell">
+        <span class="pill ${riskClass(item.risk_level)}">${escapeHtml(riskShort(item.risk_level))}</span>
+        <strong>${probabilityText(item)}</strong>
+        <small>${escapeHtml(rankGapText(item))}</small>
+      </td>
+      <td>${rankTrendCellHtml(item)}</td>
+      <td class="plan-cell">
+        <strong>${plan2026 === null ? "计划待核验" : `${formatInt(plan2026)} 人`}</strong>
+        <small>${escapeHtml(planDeltaText)}</small>
+        <small>${escapeHtml(tuitionText(item))}</small>
+      </td>
+      <td>${lifeCellHtml(item)}</td>
+      <td class="action-cell">
+        <button class="row-action" data-unit="${escapeHtml(item.unit_id)}">详情</button>
+        <button class="replace-btn" data-replace-unit="${escapeHtml(item.unit_id)}" title="换一个同层级候选">更换</button>
+      </td>
+    </tr>
+  `;
 }
 
 function renderTable() {
@@ -2122,42 +2972,28 @@ function renderTable() {
   if (!body) return;
   const rows = filteredList();
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="9" class="empty-cell">没有匹配结果，调整筛选条件试试。</td></tr>`;
+    body.innerHTML = `<tr><td colspan="7" class="empty-cell">没有匹配结果，调整筛选条件试试。</td></tr>`;
   } else {
-    body.innerHTML = rows.map((item) => {
-      const selected = state.selected?.unit_id === item.unit_id ? " selected-row" : "";
-      const plan2025 = historyRecord(item, 2025).plan;
-      const plan2026 = historyRecord(item, 2026).plan;
-      const planDelta = plan2025 !== null && plan2026 !== null ? plan2026 - plan2025 : null;
-      const planDeltaText = planDelta === null ? "计划变化待核验" : `${planDelta >= 0 ? "+" : ""}${planDelta} · 较2025`;
-      return `
-        <tr class="${selected} table-risk-${riskTone(item)}" data-unit="${escapeHtml(item.unit_id)}" style="--i:${asNumber(item.order, 0)}">
-          <td class="metric order-cell"><strong>${item.order || "-"}</strong><small>推荐</small></td>
-          <td><button class="replace-btn" data-replace-unit="${escapeHtml(item.unit_id)}" title="换一个同层级候选">更换</button></td>
-          <td>${logoHtml(item.logo_asset || state.logoCache[logoKey(item.school)], item.school)}</td>
-          <td class="cell-title">
-            <strong>${escapeHtml(item.school)}</strong>
-            <span>${escapeHtml(item.major)}</span>
-            <small>${escapeHtml(schoolCity(item))} · ${escapeHtml(schoolOwnership(item))}</small>
-          </td>
-          <td><span class="pill ${riskClass(item.risk_level)}">${escapeHtml(riskShort(item.risk_level))}</span><div class="muted-line">${probabilityText(item)}${admissionProbability(item) === null ? "" : " 录取"}</div></td>
-          <td>${yearTrendHtml(item)}<small class="rank-gap-inline">${escapeHtml(rankGapText(item))}</small></td>
-          <td class="metric"><strong>${plan2026 === null ? "待核验" : `${formatInt(plan2026)}人`}</strong><small>${escapeHtml(planDeltaText)} · ${escapeHtml(tuitionText(item))}</small></td>
-          <td>
-            <div class="table-briefs">
-              <span title="${escapeHtml(dormText(item))}">宿 ${escapeHtml(dormText(item))}</span>
-              <span title="${escapeHtml(canteenText(item))}">食 ${escapeHtml(canteenText(item))}</span>
-              <span title="${escapeHtml(employmentText(item))}">业 ${escapeHtml(textOr(guide(item).employment || guide(item).postgraduate_recommendation, "待核验"))}</span>
-              <b>可用资料项 ${coverageScore(item)}/6</b>
-            </div>
-          </td>
-          <td><button class="row-action" data-unit="${escapeHtml(item.unit_id)}">详情</button></td>
-        </tr>
-      `;
-    }).join("");
+    body.innerHTML = rows.map(tableRowHtml).join("");
   }
   markFirstPaint(body, "table");
   setText("tableCount", `已展开推荐 ${rows.length} / 96 条`);
+}
+
+// 筛选、排序、搜索后：新结果快速依次浮现。
+function refreshTable() {
+  renderTable();
+  replayEntering(el("resultBody"), "is-refreshing", 900);
+}
+
+// 详情数据回来后只更新这一行的内容，行本身不重建，正在播的动画不会被打断。
+function updateTableRow(item) {
+  const row = document.querySelector(`#resultBody tr[data-unit="${CSS.escape(item.unit_id)}"]`);
+  if (!row) return;
+  const holder = document.createElement("tbody");
+  holder.innerHTML = tableRowHtml(item, Number(row.style.getPropertyValue("--i")) || 0);
+  const fresh = holder.firstElementChild;
+  if (fresh) row.innerHTML = fresh.innerHTML;
 }
 
 let mobileSheetReturnFocus = null;
@@ -2281,13 +3117,17 @@ function bindEvents() {
     if (replaceButton?.dataset.replaceUnit) {
       event.preventDefault();
       event.stopPropagation();
+      const leaving = replaceButton.closest("tr");
+      if (leaving && !prefersReducedMotion()) {
+        leaving.classList.add("row-leaving");
+        await new Promise((resolve) => window.setTimeout(resolve, 320));
+      }
       await replaceRecommendation(replaceButton.dataset.replaceUnit, "已更换推荐");
       return;
     }
     const unitButton = event.target.closest("[data-unit]");
     if (unitButton?.dataset.unit) {
       const explicitView =
-        event.target.closest(".life-card") ||
         event.target.closest(".mobile-card") ||
         (event.target.closest(".decision-table") && event.target.closest(".row-action")) ||
         (event.target.closest(".priority-card") && event.target.closest(".row-action"));
@@ -2325,7 +3165,7 @@ function bindEvents() {
   document.body.addEventListener("keydown", async (event) => {
     if (!["Enter", " "].includes(event.key)) return;
     if (event.target.closest("button, a, input, select, textarea")) return;
-    const clickable = event.target.closest(".priority-card[data-unit], .decision-table tbody tr[data-unit], .life-card[data-unit]");
+    const clickable = event.target.closest(".priority-card[data-unit], .decision-table tbody tr[data-unit]");
     if (!clickable?.dataset.unit) return;
     event.preventDefault();
     await openDetail(clickable.dataset.unit);
@@ -2333,7 +3173,7 @@ function bindEvents() {
   el("searchInput")?.addEventListener("input", (event) => {
     state.query = event.target.value;
     state.page = 1;
-    renderTable();
+    refreshTable();
   });
   document.body.addEventListener("input", (event) => {
     if (event.target.id !== "mobileSearchInput") return;
@@ -2362,7 +3202,7 @@ function bindEvents() {
     state.riskFilter = button.dataset.riskFilter;
     state.page = 1;
     document.querySelectorAll("#riskFilterButtons button").forEach((node) => node.classList.toggle("active", node === button));
-    renderTable();
+    refreshTable();
   });
   el("ownershipFilterButtons")?.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-ownership-filter]");
@@ -2370,14 +3210,14 @@ function bindEvents() {
     state.ownershipFilter = button.dataset.ownershipFilter;
     state.page = 1;
     document.querySelectorAll("#ownershipFilterButtons button").forEach((node) => node.classList.toggle("active", node === button));
-    renderTable();
+    refreshTable();
   });
   el("sortButtons")?.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-sort]");
     if (!button) return;
     state.sort = button.dataset.sort;
     document.querySelectorAll("#sortButtons button").forEach((node) => node.classList.toggle("active", node === button));
-    renderTable();
+    refreshTable();
   });
   el("quickFilters")?.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-quick]");
@@ -2385,7 +3225,29 @@ function bindEvents() {
     state.quickFilter = button.dataset.quick;
     state.page = 1;
     document.querySelectorAll("#quickFilters button").forEach((node) => node.classList.toggle("active", node === button));
-    renderTable();
+    refreshTable();
+  });
+  const tableShell = document.querySelector(".table-shell");
+  tableShell?.addEventListener("scroll", () => {
+    tableShell.classList.toggle("is-scrolled", tableShell.scrollTop > 4);
+  }, { passive: true });
+  el("dashTabs")?.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-dash-tab]");
+    if (!button || button.classList.contains("active")) return;
+    const tab = button.dataset.dashTab;
+    el("dashTabs").querySelectorAll("button").forEach((node) => node.classList.toggle("active", node === button));
+    document.querySelectorAll("[data-dash-pane]").forEach((pane) => pane.classList.toggle("active", pane.dataset.dashPane === tab));
+    replayEntering(document.querySelector(`[data-dash-pane="${tab}"]`), "pane-entering", 500);
+    // 切回趋势图时按新尺寸重绘，隐藏期间画布宽高为 0。
+    if (tab === "trend") requestAnimationFrame(() => state.charts.rankTrendMini?.resize());
+    // 每次打开模型诊断都重播一次环形进度动画。
+    if (tab === "model") {
+      if (state.charts.chartDiag) state.charts.chartDiag.__key = null;
+      requestAnimationFrame(() => {
+        state.charts.chartDiag?.resize();
+        renderDiagChart();
+      });
+    }
   });
   el("profileTabs")?.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-profile-tab]");
@@ -2403,7 +3265,7 @@ function bindEvents() {
   };
   if (window.ResizeObserver) {
     const observer = new ResizeObserver(scheduleLayoutSync);
-    document.querySelectorAll(".center-stage, .right-rail, .mini-chart, .donut-box").forEach((node) => observer.observe(node));
+    document.querySelectorAll(".center-stage, .right-rail, .mini-chart, .donut-box, #view-dashboard .chart-box").forEach((node) => observer.observe(node));
   } else {
     window.addEventListener("resize", scheduleLayoutSync, { passive: true });
   }
@@ -2412,10 +3274,6 @@ function bindEvents() {
 
 let appBooted = false;
 let appUnlocked = false;
-
-function mobileGateMatches() {
-  return false;
-}
 
 function startDesktopApp(options = {}) {
   if (!appUnlocked || appBooted) return;
@@ -2472,21 +3330,6 @@ function restoreEntryScore() {
   document.body.dataset.scoreGate = "open";
 }
 
-function applyDesktopRequiredGate({ resetEntry = false } = {}) {
-  const blocked = mobileGateMatches();
-  document.body.dataset.mobileBlocked = blocked ? "true" : "false";
-  if (blocked) {
-    document.body.dataset.motionStatus = "desktop-required";
-    return;
-  }
-  if (resetEntry) restoreEntryScore();
-  if (document.body.dataset.motionStatus === "desktop-required") {
-    document.body.dataset.motionStatus = state.list?.length ? "ready" : "idle";
-  }
-  startDesktopApp();
-}
 
 bindEvents();
-applyDesktopRequiredGate({ resetEntry: true });
-window.addEventListener("resize", applyDesktopRequiredGate);
-window.addEventListener("orientationchange", () => window.setTimeout(applyDesktopRequiredGate, 120));
+restoreEntryScore();

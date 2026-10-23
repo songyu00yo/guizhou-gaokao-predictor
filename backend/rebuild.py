@@ -19,6 +19,7 @@ from .runtime_store import RuntimeStore
 
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG_SOURCES = {
+    2024: 'https://iip.oss-cn-guiyang-gzdata-d01-a.res.gzdata.com.cn/2024/06/24/W0202406241052%E8%B4%B5%E5%B7%9E%E7%9C%812024%E5%B9%B4%E6%99%AE%E9%80%9A%E9%AB%98%E6%A0%A1%E6%8B%9B%E7%94%9F%E4%B8%93%E4%B8%9A%E7%9B%AE%E5%BD%95%EF%BC%88%E7%89%A9%E7%90%86%E7%B1%BB%EF%BC%89.pdf.pdf',
     2025: "https://iip.oss-cn-guiyang-gzdata-d01-a.res.gzdata.com.cn/2025/06/23/"
           "W0202506231327%E8%B4%B5%E5%B7%9E%E7%9C%812025%E5%B9%B4%E6%99%AE%E9%80%9A%E9%AB%98%E6%A0%A1%E6%8B%9B%E7%94%9F%E4%B8%93%E4%B8%9A%E7%9B%AE%E5%BD%95%EF%BC%88%E7%89%A9%E7%90%86%E7%B1%BB%EF%BC%89.pdf",
     2026: "https://iip.oss-cn-guiyang-gzdata-d01-a.res.gzdata.com.cn/2026/06/22/W0194220_2026.pdf",
@@ -87,7 +88,7 @@ def prepare_inputs(raw_dir: Path, processed_dir: Path, offline: bool = False) ->
     for year, url in CATALOG_SOURCES.items():
         metadata = fetch_source(url, raw_dir / f"{year}_physics_catalog.pdf", offline=offline)
         sources.append({k: v for k, v in metadata.items() if k not in ("path", "reused")}
-                       | {"kind": "catalog", "year": year, "published_at": f"{year}-06-{23 if year == 2025 else 22}"})
+                       | {"kind": "catalog", "year": year, "published_at": f"{year}-06-{ {2024: 24, 2025: 23, 2026: 22}[year]}"})
     for year, url in SEGMENT_SOURCES.items():
         path = raw_dir / f"segment_{year}.pdf"
         metadata = fetch_source(url, path, offline=offline)
@@ -106,8 +107,8 @@ def prepare_inputs(raw_dir: Path, processed_dir: Path, offline: bool = False) ->
     for filename, module, outputs, builder in (
         ("outcome-inputs.json", "data_pipeline.py", [f"admissions_{y}.csv" for y in (2024, 2025, 2026)],
          lambda: build_official_dataset(raw_dir, processed_dir)),
-        ("catalog-inputs.json", "catalog_pipeline.py", [f"catalog_plans_{y}.csv" for y in (2025, 2026)],
-         lambda: build_catalogs(raw_dir, processed_dir, (2025, 2026))),
+        ("catalog-inputs.json", "catalog_pipeline.py", [f"catalog_plans_{y}.csv" for y in (2024, 2025, 2026)],
+         lambda: build_catalogs(raw_dir, processed_dir, (2024, 2025, 2026))),
     ):
         marker = processed_dir / filename
         expected = {"inputs": fingerprint, "parser": file_record(Path(__file__).with_name(module))["sha256"]}
@@ -127,7 +128,8 @@ def prepare_inputs(raw_dir: Path, processed_dir: Path, offline: bool = False) ->
 def enrich_package(artifact_dir: Path, processed_dir: Path, raw_dir: Path, offline: bool = False) -> dict:
     from .public_profiles import build_profiles
     from .public_policies import attach_policy_notes
-    from .official_documents import attach_official_documents
+    from .official_documents import attach_official_documents, attach_verified_tuitions
+    from .major_taxonomy import attach_major_taxonomy
     from .public_supplement import build_supplement, write_supplement
     payload = json.loads((artifact_dir / "predictions_2027.json").read_text(encoding="utf-8"))
     schools = sorted({row["school"] for row in payload["forecasts"]})
@@ -136,17 +138,37 @@ def enrich_package(artifact_dir: Path, processed_dir: Path, raw_dir: Path, offli
     report["official_documents"] = attach_official_documents(profiles, raw_dir / "profiles", offline=offline)
     sources_path = processed_dir / "public_sources.json"
     sources = json.loads(sources_path.read_text(encoding="utf-8")) if sources_path.exists() else []
-    for metadata_path in sorted((raw_dir / "profiles").rglob("*.meta.json")):
+    metadata_paths = [*sorted((raw_dir / "profiles").rglob("*.meta.json")), *sorted((raw_dir / "collections").rglob("*.meta.json"))]
+    for metadata_path in metadata_paths:
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
         if metadata.get("sha256") and metadata.get("source_url"):
             sources.append({k: v for k, v in metadata.items() if k in (
-                "source_url", "year", "license", "sha256", "bytes", "fetched_at")})
+                "source_url", "year", "license", "sha256", "bytes", "fetched_at", "retrieved_at", "final_url")})
+    distinct_sources = {}
+    for source in sources:
+        identity = (source.get("source_url", source.get("url")), source.get("sha256"))
+        combined = distinct_sources.setdefault(identity, {})
+        for key, value in source.items():
+            if combined.get(key) in (None, "") and value not in (None, ""):
+                combined[key] = value
+    sources = list(distinct_sources.values())
     gaps = [{"kind": "legacy_comparison", "reason": "原算法冻结快照未公开，无法复现旧版对比"},
             {"kind": "2027_official_data", "reason": "2027 年正式招生目录和一分一段表尚未发布"}]
     if report.get("gaps"):
         gaps.extend(report["gaps"])
     supplement = build_supplement(processed_dir, payload["forecasts"], profiles, sources, gaps)
+    report["individual_tuition_verification"] = attach_verified_tuitions(supplement, payload["forecasts"])
+    report["major_taxonomy"] = attach_major_taxonomy(supplement, payload["forecasts"], raw_dir / "profiles", offline=offline)
     coverage = supplement["coverage"]
+    coverage.update({
+        "schools_with_official_documents": sum(bool(p.get("official_documents")) for p in profiles.values()),
+        "official_documents": report["official_documents"]["verified_documents"],
+        "programs_with_major_reference": report["major_taxonomy"].get("programs_exact_major_matched", 0),
+        "programs_with_major_category_reference": report["major_taxonomy"].get("programs_category_matched", 0),
+    })
+    if report["official_documents"].get("errors"):
+        gaps.append({"kind": "official_document_sources", "records": report["official_documents"]["errors"],
+                     "reason": "来源不可达、正文不可提取或身份年份未通过核验"})
     for field, total_field in (("schools_with_basic", "schools_total"), ("schools_with_life", "schools_total"),
                                ("schools_with_official_site", "schools_total"),
                                ("programs_with_history_2024", "programs_total"),
@@ -171,6 +193,31 @@ def enrich_package(artifact_dir: Path, processed_dir: Path, raw_dir: Path, offli
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     (artifact_dir / "coverage_report.json").write_text(json.dumps({"coverage": supplement["coverage"],
         "gaps": gaps, "profiles": report}, ensure_ascii=False, indent=2), encoding="utf-8")
+    forecast_by_id = {row["unit_id"]: row for row in payload["forecasts"]}
+    missing_programs = []
+    pending_fee_count = 0
+    for unit_id, entry in supplement["programs"].items():
+        forecast = forecast_by_id[unit_id]
+        if entry.get("tuition") in {"待定", "待公布", "待审批"}:
+            pending_fee_count += 1
+        missing = [field for field in ("tuition", "subject_requirement") if not entry.get(field)]
+        if missing:
+            missing_programs.append({"unit_id": unit_id, "school": forecast["school"], "major": forecast["major"],
+                "school_code": forecast["school_code"], "major_code": forecast["major_code"], "year": 2026,
+                "missing_fields": missing, "status": "needs_individual_verification",
+                "reason": "综合目录未能精确唯一匹配，或单校公开资料尚未取得完整可核验正文",
+                "official_site": profiles.get(forecast["school"], {}).get("official", {}).get("official_site")})
+    audit = {"coverage": coverage, "official_catalogs": json.loads((processed_dir / "catalog_manifest.json").read_text())
+            if (processed_dir / "catalog_manifest.json").exists() else {},
+        "individual_source_report": report["official_documents"],
+        "individual_tuition_report": report["individual_tuition_verification"],
+        "pending_official_fee_count": pending_fee_count, "missing_programs": missing_programs,
+        "school_information": [{"school": name, "category": profile.get("headline", {}).get("category"),
+            "ownership": profile.get("headline", {}).get("ownership"),
+            "official_documents": len(profile.get("official_documents", [])),
+            "missing_fields": profile.get("missing_fields", [])} for name, profile in sorted(profiles.items())],
+        "prediction_data_changed": False, "model_retrained": False}
+    (artifact_dir / "information_audit.json").write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
     RuntimeStore(artifact_dir)
     return supplement["coverage"]
 

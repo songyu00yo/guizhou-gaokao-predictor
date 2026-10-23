@@ -70,8 +70,15 @@ def _catalog_name_agrees(record: AdmissionRow, row: dict[str, str]) -> bool:
     # Catalog headings append a province/city location. Remove only that suffix;
     # retain institutional qualifiers such as (北京), (珠海校区), and (中外合作).
     catalog_school = _catalog_school_key(row["school_name"])
-    return (record.school_key == catalog_school
-            and record.major_key == normalize_major(row["major_name"]))
+    school_agrees = record.school_key == catalog_school
+    if not school_agrees and record.school_code == row.get("school_code"):
+        # Province-only locators (北京/上海/天津/重庆) cannot be stripped
+        # globally: (北京) may identify a real campus. Matching source codes
+        # plus the complete institution name makes this narrow case explicit.
+        school_agrees = normalize_school(row["school_name"]) in {
+            record.school_key + f"({location})" for location in ("北京", "天津", "上海", "重庆")
+        }
+    return school_agrees and record.major_key == normalize_major(row["major_name"])
 
 
 def _catalog_school_key(value: str) -> str:
@@ -114,7 +121,7 @@ def build_supplement(processed_dir: Path, forecasts: list[dict], profiles: dict,
     catalogs = {
         y: (catalog_index(processed_dir / f"catalog_plans_{y}.csv"),
             catalog_name_index(processed_dir / f"catalog_plans_{y}.csv"))
-        for y in (2025, 2026)
+        for y in (2024, 2025, 2026)
     }
     catalog_source_urls = {int(source["year"]): source["url"] for source in sources
                            if source.get("kind") == "catalog" and source.get("year") and source.get("url")}

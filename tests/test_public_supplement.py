@@ -64,3 +64,15 @@ def test_matching_codes_require_school_and_major_agreement() -> None:
 
     assert catalog_match(record, {(record.school_code, record.major_code): row}) is None
 
+
+
+def test_province_only_locator_requires_same_source_school_code():
+    from backend.data_pipeline import AdmissionRow
+    from backend.public_supplement import agreeing_catalog
+    record = AdmissionRow(2026, 1, '0100', '北方工业大学', '501', '计算机科学与技术',
+                          '一般统考生', None, 1, 500, 10000, 1, 'source.pdf', 'https://example.test')
+    row = {'school_code': '0100', 'major_code': '501', 'school_name': '北方工业大学(北京)',
+           'major_name': '计算机科学与技术'}
+    assert agreeing_catalog(record, {('0100', '501'): row}) is row
+    row_wrong = {**row, 'school_code': '0101'}
+    assert agreeing_catalog(record, {('0100', '501'): row_wrong}) is None

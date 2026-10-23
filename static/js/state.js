@@ -12,7 +12,7 @@ export const state = {
   selectedProfile: null,
   selectedCollegesChat: null,
   collegesChatCache: {},
-  activeProfileTab: "basic",
+  activeProfileTab: "admission",
   query: "",
   riskFilter: "all",
   ownershipFilter: "all",

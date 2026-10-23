@@ -13,7 +13,7 @@ function functionSource(name) {
 }
 
 for (const reduced of [false, true]) {
-  test(`entry loader releases as soon as data is ready, reduced=${reduced}`, async () => {
+  test(`entry loader plays the full intro before releasing, reduced=${reduced}`, async () => {
     const delays = [];
     const loader = { hidden: true, dataset: {} };
     let resolveMinimum;
@@ -27,9 +27,10 @@ for (const reduced of [false, true]) {
       setTimeout(fn, ms) { delays.push(ms); resolveMinimum = fn; },
       window: { setTimeout(fn, ms) { delays.push(ms); fn(); } },
       renderRankTrendMini() {},
+      revealApp() {},
     });
     vm.runInContext(
-      'const ENTRY_MIN_DURATION = 1200; const ENTRY_FADE_DURATION = 220;\n' + functionSource('showEntryLoader') + '\n' + functionSource('hideEntryLoader'),
+      'const ENTRY_MIN_DURATION = 5200; const ENTRY_FADE_DURATION = 600;\n' + functionSource('showEntryLoader') + '\n' + functionSource('hideEntryLoader'),
       context,
     );
     context.showEntryLoader();
@@ -38,18 +39,18 @@ for (const reduced of [false, true]) {
     const ending = context.hideEntryLoader();
     await Promise.resolve();
     assert.equal(loader.hidden, false, '早到的数据不能绕过最短展示时间');
-    assert.equal(delays[0], reduced ? 120 : 1200, '开场时长必须收敛到 1.2s 以内');
+    assert.equal(delays[0], reduced ? 120 : 5200, '开场动画完整播放约 5 秒，减少动态效果时只留 120ms');
     resolveMinimum();
     await ending;
     assert.equal(loader.hidden, true);
     assert.equal(loader.dataset.visible, 'false');
-    assert.equal(delays[1], reduced ? 0 : 220, '淡出只留 220ms');
+    assert.equal(delays[1], reduced ? 0 : 600, '淡出 600ms');
   });
 }
 
 test('入场标记对同一 key 只触发一次', () => {
   const context = vm.createContext({ window: { setTimeout() {} } });
-  vm.runInContext('const enteredContent = new Set();', context);
+  vm.runInContext('const enteredContent = new Set(); const ENTER_CLEAR_DELAY = 2600;', context);
   vm.runInContext(functionSource('markEntering'), context);
   const classes = new Set();
   const node = {
@@ -68,9 +69,30 @@ test('入场标记对同一 key 只触发一次', () => {
   assert.equal(classes.has('is-entering'), true, '新内容仍然入场');
 });
 
-test('样式表不再包含常驻图层、无限动画与滤镜动画', () => {
+// 取出某种 @media 块的全部内容（按花括号配对）。
+function mediaBlocks(css, query) {
+  const blocks = [];
+  let from = 0;
+  while ((from = css.indexOf(query, from)) !== -1) {
+    let depth = 0;
+    let index = css.indexOf('{', from);
+    const start = index;
+    for (; index < css.length; index++) {
+      if (css[index] === '{') depth++;
+      if (css[index] === '}' && --depth === 0) break;
+    }
+    blocks.push(css.slice(start, index + 1));
+    from = index;
+  }
+  return blocks;
+}
+
+test('循环动画只写在未要求减少动态效果的媒体查询里，且不用滤镜与常驻图层', () => {
+  const allowed = mediaBlocks(styles, '@media (prefers-reduced-motion: no-preference)');
+  assert.ok(allowed.length >= 1, '缺少 no-preference 动效块');
+  const rest = allowed.reduce((text, block) => text.replace(block, ''), styles);
+  assert.equal(/animation[^;]*infinite/.test(rest), false, '循环动画必须放进 no-preference 块');
   assert.equal(/^\s*will-change\s*:/m.test(styles), false, '不允许常驻 will-change');
-  assert.equal(/animation[^;]*infinite/.test(styles), false, '不允许无限循环动画');
   assert.equal(/^\s*filter\s*:/m.test(styles), false, '不允许 filter 动画/过渡');
   assert.equal(/backdrop-filter/.test(styles), false, '大面积背景模糊会造成重绘抖动');
 });
@@ -79,7 +101,7 @@ test('入场动画只有一个入口并允许降级', () => {
   assert.equal(styles.includes('.is-entering {'), true);
   assert.equal(styles.includes('@keyframes contentIn'), true);
   const durations = [...styles.matchAll(/animation:[^;]*?(\d+)ms/g)].map((match) => Number(match[1]));
-  assert.ok(durations.every((value) => value <= 800), `存在过长动画: ${durations.filter((v) => v > 800)}`);
+  assert.ok(durations.every((value) => value <= 5000), `存在过长的一次性动画: ${durations.filter((v) => v > 5000)}`);
 });
 
 // 只拼装队列相关的函数，避免把 attachLogoAsset 的真实实现覆盖测试桩。
