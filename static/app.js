@@ -1,6 +1,6 @@
-import { state } from "./js/state.js?v=20261023r";
-import { fetchJson, fetchRecommendations, isAbortError } from "./js/api.js?v=20261023r";
-import { countUp, prefersReducedMotion } from "./js/motion.js?v=20261023r";
+import { state } from "./js/state.js?v=20261023s";
+import { fetchJson, fetchRecommendations, isAbortError } from "./js/api.js?v=20261023s";
+import { countUp, prefersReducedMotion } from "./js/motion.js?v=20261023s";
 
 const RISK_COLORS = {
   强冲: "#c93838",
@@ -1541,7 +1541,7 @@ function modelLabHtml() {
   const stats = [
     ["训练样本", formatCount(report.training_rows), "2024→2025、2025→2026"],
     ["预测专业组合", formatCount(report.forecast_rows), "2027 全部候选"],
-    ["时间外 MAE", `${formatCount(backtest.mae_rank)} 名`, "2026 年未参与训练"],
+    ["交叉校准 MAE", `${formatCount(calibration.median_calibrated_metrics?.mae_rank ?? backtest.mae_rank)} 名`, `中位误差 ${formatCount(calibration.median_calibrated_metrics?.median_ae_rank ?? backtest.median_ae_rank)} 名 · 2026 时间外`],
     ["80% 区间覆盖", calibration.q10_q90_coverage === undefined ? "-" : formatPercent(calibration.q10_q90_coverage, 1), "五折交叉校准"],
   ];
   return `
@@ -2249,13 +2249,13 @@ function rankAxisRange(values, userRank, padRatio = 0.06) {
 
 const USER_RANK_LINE_COLOR = "#c96b12";
 
-function userRankMarkLine(userRank, axis = "xAxis") {
+function userRankMarkLine(userRank, axis = "xAxis", labelAtStart = false) {
   if (!userRank) return undefined;
   return {
     symbol: "none",
     silent: true,
     lineStyle: { color: USER_RANK_LINE_COLOR, type: "dashed", width: 1.5 },
-    label: { formatter: `你的位次 ${formatInt(userRank)}`, color: USER_RANK_LINE_COLOR, fontWeight: 800, fontSize: 11, position: axis === "xAxis" ? "end" : "insideEndTop" },
+    label: { formatter: `你的位次 ${formatInt(userRank)}`, color: USER_RANK_LINE_COLOR, fontWeight: 800, fontSize: 11, position: axis === "xAxis" ? (labelAtStart ? "start" : "end") : "insideEndTop" },
     data: [{ [axis]: userRank }],
   };
 }
@@ -2613,7 +2613,7 @@ function renderMajorsChart() {
   const userRank = validCount(state.currentRank ?? state.summary?.predicted_user_rank ?? state.summary?.user_rank);
   const selectedId = state.selected?.unit_id;
   paintChart("chartMajors", {
-    grid: { left: 150, right: 24, top: 30, bottom: 28 },
+    grid: { left: 150, right: 24, top: 48, bottom: 28 },
     legend: { top: 0, left: 150, itemWidth: 10, itemHeight: 10, textStyle: { color: "#52627a", fontSize: 11, fontWeight: 700 } },
     tooltip: {
       trigger: "axis",
@@ -2662,7 +2662,7 @@ function renderMajorsChart() {
         data: rows.map((row) => ({ value: nullableHistoryValue(row.predicted_rank), itemStyle: row.unit_id === selectedId ? { color: "#c96b12" } : undefined })),
         itemStyle: { color: "#1558b0", borderColor: "#fff", borderWidth: 1.5 },
         animationDelay: (index) => index * 50,
-        markLine: userRankMarkLine(userRank),
+        markLine: userRankMarkLine(userRank, "xAxis", true),
       },
     ],
   }, JSON.stringify([profile.school, rows.map((row) => row.unit_id), userRank, selectedId]));

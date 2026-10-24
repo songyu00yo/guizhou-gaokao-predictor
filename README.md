@@ -1,55 +1,71 @@
-# 贵州高考志愿预测系统（物理类）
-
-这是一个面向贵州普通类本科批首选物理考生的志愿辅助项目。当前公开运行包使用 2024～2026 年首次投档数据，对 2027 年生成临时预测。
+# 贵州物理类高考志愿预测与决策辅助系统
 
 [![build](https://github.com/songyu00yo/guizhou-gaokao-predictor/actions/workflows/ci.yml/badge.svg)](https://github.com/songyu00yo/guizhou-gaokao-predictor/actions/workflows/ci.yml)
 [![release](https://img.shields.io/github/v/release/songyu00yo/guizhou-gaokao-predictor)](https://github.com/songyu00yo/guizhou-gaokao-predictor/releases/latest)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-![platform](https://img.shields.io/badge/platform-Web%20%7C%20Docker-lightgrey)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![ECharts](https://img.shields.io/badge/ECharts-AA344D?logo=apacheecharts&logoColor=white)
+![CatBoost](https://img.shields.io/badge/model-CatBoost-FFCC00)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
 
-![CSS](https://img.shields.io/badge/CSS-34.1%25-1572B6?logo=css3&logoColor=white)
-![Python](https://img.shields.io/badge/Python-32.5%25-3776AB?logo=python&logoColor=white)
-![JavaScript](https://img.shields.io/badge/JavaScript-28.7%25-F7DF1E?logo=javascript&logoColor=black)
-![HTML](https://img.shields.io/badge/HTML-4.5%25-E34F26?logo=html5&logoColor=white)
-![Dockerfile](https://img.shields.io/badge/Dockerfile-0.2%25-2496ED?logo=docker&logoColor=white)
+这是一个桌面 Web 应用，服务贵州普通类本科批首选物理的考生。你输入高考分数，系统按 2026 年一分一段表换算位次，再生成 96 个冲稳保志愿。每个志愿都附带 2027 年预测位次区间、估算录取概率和院校生活信息。
 
-![FastAPI](https://img.shields.io/badge/backend-FastAPI-009688?logo=fastapi&logoColor=white)
-![NumPy](https://img.shields.io/badge/numeric-NumPy-013243?logo=numpy&logoColor=white)
-![Docker](https://img.shields.io/badge/container-Docker-2496ED?logo=docker&logoColor=white)
-
-API 每次返回 96 个推荐项。推荐结果包含预测位次区间、估算录取概率和风险分层，并支持 `conservative`、`balanced` 和 `aggressive` 三种偏好。
-
-> **当前结果不能视为 2027 年正式录取预测。** 2027 年招生目录和一分一段表尚未发布。当前预测沿用 2026 年的专业集合，也没有 `plan_2027`。
+> **2027 年的结果是临时预测。** 2027 年招生目录和一分一段表尚未发布，分数换位次参考 2026 年表。
 >
-> 项目只用于信息整理和概率分析，不能替代贵州省招生考试院、院校招生章程或人工核验。
+> 本项目不是官方系统，只做信息整理和概率估算。填报前请以贵州省招生考试院、院校招生章程为准，并人工核验。
 
-## 仓库自带运行包
+## 主要功能
 
-以下数值描述仓库自带的运行包。本地公开数据重建流程见 [BACKEND_REBUILD.md](BACKEND_REBUILD.md)。重建会重新计算指标，并在 `var/runtime/` 中生成独立运行包。
+系统有四个页面，用顶部导航切换：
 
-| 项目 | 当前值 |
-| --- | --- |
-| 目标年份 | 2027 |
-| 状态 | `provisional_before_2027_catalog` |
-| 预测记录 | 16,740 |
-| 模型路线 | `catboost_delta_d5` |
-| 运行数据 | `predictions_2027.json`、`model_report.json`、`segment_2026.json` |
-| 数据生成时间 | 2026-08-14 |
+- 总览：位次、平均录取概率和冲稳保数量，全部 96 个志愿列表，位次趋势图，难度与把握散点图，录取概率分布图和城市分布图。
+- 志愿推荐：96 个志愿逐行对比，包括风险、录取概率、2024 年～2027 年位次走势、计划和学费。支持筛选、排序和搜索。
+- 院校详情：默认显示“录取趋势”，即同校各专业 2026 年实际位次和 2027 年预测位次的对比。另有基础信息、学生生活问卷原文和官网来源。
+- 资料说明：数据来源、覆盖情况、模型公式和回测图表。
 
-公开 Web 服务只加载运行数据，不导入 CatBoost、LightGBM、pandas 或训练代码。
+左栏可以切换三种策略：保守、均衡和冲刺，对应接口参数 `conservative`、`balanced` 和 `aggressive`。不同策略的冲稳保名额不同。对某条志愿点“更换”或“不感兴趣”后，系统会从候选中自动补位。
+
+## 数据与模型现状
+
+下表是当前启用运行包的数据，生成于 2026-10-23。
+
+| 项目 | 数量 |
+| --- | ---: |
+| 专业预测 | 16,740 条 |
+| 院校 | 1,101 所 |
+| 有学生生活问卷的院校 | 1,040 所 |
+| 有学费的专业 | 15,150 条 |
+| 有选科要求的专业 | 15,134 条 |
+| 资料源文件 | 1,334 份 |
+
+模型路线是 `catboost_delta_d5`。下表是 2026 年时间外评估的结果，训练时没有用到 2026 年的录取结果。MAE（Mean Absolute Error，平均绝对误差）指预测位次与实际投档位次的平均差距。
+
+| 指标 | 结果 |
+| --- | ---: |
+| 评估样本 | 13,491 个 |
+| MAE | 3,567.72 位 |
+| 中位绝对误差 | 2,144 位 |
+| 交叉校准后 MAE | 3,118.579 位 |
+| 交叉校准后中位绝对误差 | 1,769 位 |
+| 80% 区间实际覆盖率 | 79.52% |
+| 90% 区间实际覆盖率 | 89.68% |
+
+这些数字是模型报告记录的历史回测，不是录取准确率。
+
+**仓库自带的 `data/artifacts/` 是 2026-08-14 生成的旧运行包。** 它的指标和覆盖数与上表不同。按 [BACKEND_REBUILD.md](BACKEND_REBUILD.md) 重建后，才能得到上表的数据。
 
 ## 本地运行
 
-Dockerfile 使用 Python 3.12。按同一版本运行最容易复现公开服务环境。
+Dockerfile 使用 Python 3.12，本地也建议用这个版本。
 
 ```bash
 git clone https://github.com/songyu00yo/guizhou-gaokao-predictor.git
 cd guizhou-gaokao-predictor
-
 python -m venv .venv
 ```
 
-Linux 或 macOS：
+激活虚拟环境。Linux 或 macOS：
 
 ```bash
 source .venv/bin/activate
@@ -68,18 +84,26 @@ python -m pip install -r requirements.txt
 python -m uvicorn app:app --host 127.0.0.1 --port 8000
 ```
 
-打开 <http://127.0.0.1:8000>。健康检查地址是 <http://127.0.0.1:8000/api/health>。
+用浏览器打开 <http://127.0.0.1:8000>，健康检查地址是 <http://127.0.0.1:8000/api/health>。
 
-### Docker
+界面按桌面浏览器设计。窗口宽度在 820 px 及以下时会切换为简化的手机布局，没有做全面的手机适配。核心功能在依赖安装后可以离线运行，校徽等外部资源需要联网。
 
-仓库提供 `Dockerfile`，没有 `docker-compose.yml`。
+### 用 Docker 运行
+
+直接构建并运行：
 
 ```bash
 docker build -t guizhou-gaokao-predictor .
 docker run --rm -p 8000:8000 guizhou-gaokao-predictor
 ```
 
-## API
+也可以用 `compose.yaml`。它把运行缓存目录 `var/cache`（包括校徽缓存）挂到 `predictor-cache` 卷上。项目根目录有 `.env` 时，compose 会读取它：
+
+```bash
+docker compose up --build
+```
+
+## 接口
 
 生成推荐：
 
@@ -90,109 +114,95 @@ Content-Type: application/json
 {"score":500,"risk":"balanced"}
 ```
 
-请求字段：
-
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
-| `score` | integer | 0～750 |
-| `current_rank` | integer 或 null | 可选。填写后优先使用位次 |
+| `score` | integer | 高考分数，0～750 |
+| `current_rank` | integer 或 null | 可选。填写后优先使用这个位次 |
 | `risk` | string | `conservative`、`balanced` 或 `aggressive` |
 
-如果没有传 `current_rank`，服务会用贵州 2026 年物理类一分一段表把分数换成位次。
+没有传 `current_rank` 时，服务用贵州 2026 年物理类一分一段表把分数换成位次。返回结果里，每个推荐项都带 `rank_trend` 字段，按顺序是 2024 年、2025 年、2026 年的投档位次和 2027 年预测位次，缺失的年份为 `null`。
 
-主要接口：
+常用接口：
 
-- `POST /api/v1/recommendations`：返回 96 个推荐项和候选替补。
-- `GET /api/v1/recommendations/{unit_id}`：返回单个院校专业预测详情。
-- `GET /api/v1/model-report`：返回公开模型报告。
-- `GET /api/health`：返回服务状态、目标年份、候选数量和模型路线。
-- `POST /generate`、`GET /api/detail/{unit_id}`：兼容旧接口。`difficulty_delta` 已弃用。
+| 接口 | 说明 |
+| --- | --- |
+| `POST /api/v1/recommendations` | 返回 96 个推荐项和候补 |
+| `GET /api/v1/recommendations/{unit_id}` | 返回单个院校专业的预测详情和完整历史 |
+| `GET /api/school-profile/{school_name}` | 返回院校画像和各专业位次 |
+| `GET /api/colleges-chat/{school_name}` | 返回院校的学生生活问卷 |
+| `GET /api/resources/summary` | 返回数据覆盖和来源汇总 |
+| `GET /api/v1/model-report` | 返回模型报告 |
+| `GET /api/health` | 返回服务状态、目标年份、候选数量和模型路线 |
 
-FastAPI 自动生成的接口文档可在 `/docs` 查看。
+旧接口 `POST /generate` 和 `GET /api/detail/{unit_id}` 仍然可用，`difficulty_delta` 参数已弃用。完整接口文档见 `/docs`。
 
-## 模型选择与评估
+## 模型方法
 
-模型选择和最终评估分开进行。
+模型选型和最终评估分开做：
 
-1. 用 `2024→2025` 转换数据做 5 折院校分组交叉验证。
-2. 根据内部验证结果锁定 `catboost_delta_d5`。
-3. 用锁定后的路线预测 `2025→2026`，得到时间外评估结果。
-4. 完成评估后，再把 `2024→2025` 和 `2025→2026` 两段数据合并，用于生成 2027 年临时预测。
+1. 用 2024→2025 年的转换数据做 5 折交叉验证，按院校分组。
+2. 根据验证结果锁定 `catboost_delta_d5`。
+3. 用锁定的路线预测 2025→2026 年，得到时间外评估结果。2025→2026 年的数据不参与选型。
+4. 评估完成后，合并两段转换数据重新训练，生成 2027 年临时预测。
 
-`2025→2026` 不参与模型路线选择。
+预测分四步：
 
-### 2026 时间外评估
+1. 把每年的投档位次除以当年考生规模，换算成占全省考生的比例。
+2. 用 CatBoost 学习这个比例在相邻两年间的对数变化量，再还原成 2027 年预测位次。
+3. 按预测位次分成 10 档，用每档的历史残差分位数给出预测区间。
+4. 在各分位点之间做线性插值，把考生位次换算成录取概率，再按概率分出强冲、冲、稳、保和兜底。
 
-`data/artifacts/model_report.json` 中的 `time_out_2026_metrics_without_future_plan` 记录了不使用未来招生计划时的结果：
+完整公式和参数在“资料说明”页里。原算法的冻结快照没有公开，所以无法与旧算法做对比。
 
-| 指标 | 结果 |
-| --- | ---: |
-| 样本数 | 13,491 |
-| MAE | 3,513.76 位 |
-| 中位绝对误差 | 2,058 位 |
-| 10% 相对误差内 | 80.91% |
-| 20% 相对误差内 | 94.89% |
+## 2027 年预测的边界
 
-残差区间使用 5 折 cross-fit 校准。校准后的中位预测 MAE 为 3,131.83 位，中位绝对误差为 1,783 位。
+当前预测把 2026 年普通本科物理类专业作为 2027 年的候选集合。2027 年新增、停招、改名或调整选科要求的专业，要等官方招生目录发布后才能补上或修正。
 
-`q10～q90` 覆盖率为 79.48%，`q05～q95` 覆盖率为 89.66%。
+`plan_2026` 是从 2026 年招生目录核验出的计划人数，`admitted_2026` 是 2026 年首次投档人数。两者含义不同，代码分开处理。
 
-在 11,328 条可公平对比的样本上，新路线相对冻结的旧算法把 MAE 降低了 33.10%，中位绝对误差降低了 41.13%。
+预测区间只描述首次投档位次的不确定性。最终录取还受招生计划、专业组调整、选科要求、政策和考生分布变化影响。
 
-这些数字描述历史回测，不表示 2027 年录取保证。
+## 重建数据
 
-## 2027 临时预测的边界
-
-当前预测文件把 2026 年普通本科物理类专业作为 2027 年候选集合。2027 年新增、停招、改名或调整选科要求的专业，要等官方招生目录发布后才能加入或修正。
-
-`plan_2026` 是从 2026 年招生目录核验出的计划人数。`admitted_2026` 是 2026 年首次投档人数。两者含义不同，代码不会把它们当成同一字段。
-
-预测区间描述首次投档位次的不确定性。最终录取还会受招生计划、专业组调整、选科要求、政策和考生分布变化影响。
-
-## 数据与复现范围
-
-数据解析代码中的首次投档来源指向贵州省招生考试院等公开页面。仓库不分发原始 PDF、处理中间 CSV、私人 Excel、冻结缓存和训练模型。
-
-公开数据准备入口会下载投档表、一分一段表、招生目录及院校资料，并记录来源和校验值。首次运行需要联网，后续可以复用已校验的本地缓存。重建流程不再依赖私人冻结缓存；缺少旧算法快照时，会明确标记旧算法对比不可复现。
-
-训练依赖：
+仓库不分发原始 PDF、处理中间文件、私人 Excel 和训练模型。重建流程会下载投档表、一分一段表、招生目录和院校资料，并记录来源和校验值。第一次运行需要联网，之后可以复用已校验的本地缓存。
 
 ```bash
 python -m pip install -r requirements-ml.txt
 python -m backend.rebuild --train --activate
 ```
 
-相关代码：
+重建结果写在 `var/runtime/` 下，`var/runtime/active.json` 记录当前启用的运行包。启动、重建和回退的完整步骤见 [BACKEND_REBUILD.md](BACKEND_REBUILD.md)。
 
-- `backend/data_pipeline.py`：解析官方 PDF，规范院校和专业名称，并匹配年度数据。
-- `backend/backtest.py`：构造年度转换数据，比较模型路线并生成回测指标。
+2027 年招生目录发布后，需要重新生成专业集合和 `plan_2027`。2027 年一分一段表发布后，还要更新分数和位次的换算。
+
+## 目录结构
+
+- `app.py`：ASGI 入口，可以用 `uvicorn app:app` 启动。
+- `backend/web.py`：FastAPI 路由、限流和服务组装。
+- `backend/runtime_store.py`：加载并校验运行包，用 NumPy 计算推荐结果。
+- `backend/data_pipeline.py`：解析官方 PDF，规范院校和专业名称，匹配各年数据。
+- `backend/backtest.py`：构造年度转换数据，比较模型路线，生成回测指标。
 - `backend/train_forecast.py`：锁定路线后重新训练，生成预测文件和运行清单。
+- `backend/logo_service.py`：按白名单获取校徽并写入本地缓存。
+- `static/`：前端页面。`app.js` 是主逻辑，`js/` 下是状态、接口和动画模块，图表用 ECharts。
+- `data/artifacts/`：仓库自带的运行包。
 
-2027 年官方招生目录发布后，需要重新生成专业集合和 `plan_2027`。2027 年一分一段表发布后，还需要更新正式位次映射。
+服务启动时会检查运行包的 schema、文件大小和 SHA-256。校验失败时，不加载这个运行包。公开 Web 服务只读取运行数据，不导入 CatBoost、LightGBM、pandas 等训练依赖。
 
-## 运行架构
+## 配置
 
-- `app.py`：ASGI 入口，兼容 `uvicorn app:app`。
-- `backend/web.py`：FastAPI 路由、限流和运行时服务组装。
-- `backend/runtime_store.py`：校验运行包，并用 NumPy 计算推荐结果。
-- `backend/logo_service.py`：按白名单获取校徽，并写入本地缓存。
-- `static/`：原生 JavaScript 和 CSS 前端。
-- `data/artifacts/`：公开预测文件、模型报告和运行清单。
+`.env.example` 列出了四个可选环境变量：
 
-运行包启动时会检查 schema、文件大小和 SHA-256。校验失败时，服务不会继续加载对应运行包。
+| 变量 | 说明 |
+| --- | --- |
+| `GZ_ADMIN_TOKEN` | 管理员实时核查接口的令牌。不配置时这项功能关闭 |
+| `GZ_RUNTIME_CACHE_DIR` | 运行缓存目录，默认是 `var/cache` |
+| `GZ_PRIVATE_PROFILE_FILE` | 私人院校画像 JSON。公开功能不依赖这个文件 |
+| `GZ_RUNTIME_DATA_DIR` | 指定运行包目录。不设置时先读 `var/runtime/active.json`，再用 `data/artifacts/` |
 
-## 可选配置
+应用不会自动加载 `.env`，本地运行时请在终端里用 `export` 设置。用 `docker compose` 运行时会读取 `.env`。
 
-`.env.example` 给出了以下配置：
-
-- `GZ_ADMIN_TOKEN`：管理员实时核查接口令牌。不配置时对应能力保持关闭。
-- `GZ_RUNTIME_CACHE_DIR`：运行缓存目录，默认使用 `var/cache`。
-- `GZ_PRIVATE_PROFILE_FILE`：私人院校画像 JSON。公开功能不依赖该文件。
-- `GZ_RUNTIME_DATA_DIR`：指定运行包目录。未设置时优先读取本地启用记录，最后使用仓库自带运行包。
-
-校徽不提交到 Git，只在运行时按需缓存。
-
-## 开发
+## 开发与测试
 
 安装开发依赖：
 
@@ -200,19 +210,18 @@ python -m backend.rebuild --train --activate
 python -m pip install -r requirements-dev.txt
 ```
 
-运行检查：
+运行检查和测试：
 
 ```bash
 ruff check .
 pytest
+node --test tests/frontend_motion.test.mjs
 ```
 
-提交代码时，不要加入考生个人信息、私人 Excel、原始 PDF、训练模型或运行缓存。更多约束见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+提交代码时，不要加入考生个人信息、私人 Excel、原始 PDF、训练模型或运行缓存。其他约定见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 许可证与第三方内容
 
-代码依据 [Apache License 2.0](LICENSE) 发布。
+代码按 [Apache License 2.0](LICENSE) 发布。
 
-许可证不覆盖官方招生数据、院校校徽、CollegesChat 内容和其他第三方内容。
-
-相关说明见 [NOTICE](NOTICE) 和 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+许可证不覆盖官方招生数据、院校校徽、CollegesChat 问卷和其他第三方内容。各项来源和许可见 [NOTICE](NOTICE) 和 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
