@@ -89,7 +89,7 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     application = FastAPI(
         title="贵州高考志愿预测系统（物理类）",
-        version="0.1.0",
+        version="0.2.0",
         lifespan=lifespan,
     )
     application.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=6)
