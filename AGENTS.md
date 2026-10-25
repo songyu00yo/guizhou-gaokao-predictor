@@ -41,6 +41,7 @@ node --test tests/frontend_motion.test.mjs
 - `plan_2026` 是招生计划人数，`admitted_2026` 是首次投档人数，两者不能混用。
 - 2026 年归一化尺度是 393 分对应的累计位次 158,893。不要改回 166,669，那是特殊预科的位次。
 - 不要提交考生个人信息、私人 Excel、原始 PDF、训练模型，以及 `var/`、`data/raw/`、`data/processed/` 下的文件。
+- 提交说明和 PR 描述里不加 AI 工具的共同作者署名，例如 `Co-Authored-By: Claude`，也不加 “Generated with” 一类的生成说明。工具默认要求加署名时，以这条为准。
 - 代码注释只解释数据口径、业务规则和不直观的实现。
 - 不要整份读取大文件：`static/echarts.min.js`、`data/` 下的 CSV 和 JSON、`var/cache/`。需要时用搜索或只读几行。
 - 用中文回复用户。
